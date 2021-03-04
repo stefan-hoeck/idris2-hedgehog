@@ -1,0 +1,6 @@
+package hedgehog-doc
+
+sourcedir  = "src"
+depends    = base, contrib, elab-util, sop, pretty-show
+
+modules = Doc.Intro
