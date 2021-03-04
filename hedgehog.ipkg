@@ -10,6 +10,7 @@ modules = Data.Bits
 
         , Hedgehog.Internal.Config
         , Hedgehog.Internal.Gen
+        , Hedgehog.Internal.Property
         , Hedgehog.Internal.Range
         , Hedgehog.Internal.Seed
         , Hedgehog.Internal.Shrink
