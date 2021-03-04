@@ -8,6 +8,7 @@ modules = Data.Bits
         , Data.Cotree
 
         , Hedgehog.Internal.Config
+        , Hedgehog.Internal.Range
         , Hedgehog.Internal.Seed
         , Hedgehog.Internal.Shrink
         , Hedgehog.Internal.Terminal
