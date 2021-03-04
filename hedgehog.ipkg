@@ -3,5 +3,6 @@ package hedgehog
 sourcedir  = "src"
 depends    = base, contrib, elab-util, sop, pretty-show
 
-modules = Data.Bounded
+modules = Data.Bits
+        , Data.Bounded
         , Data.Cotree
