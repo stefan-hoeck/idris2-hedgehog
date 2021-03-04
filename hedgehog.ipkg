@@ -6,6 +6,7 @@ depends    = base, contrib, elab-util, sop, pretty-show
 modules = Data.Bits
         , Data.Bounded
         , Data.Cotree
+        , Data.Tree
 
         , Hedgehog.Internal.Config
         , Hedgehog.Internal.Range
