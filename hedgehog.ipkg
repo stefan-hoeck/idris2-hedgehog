@@ -7,4 +7,5 @@ modules = Data.Bits
         , Data.Bounded
         , Data.Cotree
 
+        , Hedgehog.Internal.Config
         , Hedgehog.Internal.Util
