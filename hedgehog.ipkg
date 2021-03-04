@@ -9,4 +9,5 @@ modules = Data.Bits
 
         , Hedgehog.Internal.Config
         , Hedgehog.Internal.Seed
+        , Hedgehog.Internal.Terminal
         , Hedgehog.Internal.Util
