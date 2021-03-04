@@ -13,6 +13,7 @@ modules = Data.Bits
         , Hedgehog.Internal.Property
         , Hedgehog.Internal.Range
         , Hedgehog.Internal.Report
+        , Hedgehog.Internal.Runner
         , Hedgehog.Internal.Seed
         , Hedgehog.Internal.Shrink
         , Hedgehog.Internal.Terminal
