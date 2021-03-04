@@ -2,6 +2,7 @@ module Data.Cotree
 
 import Data.Colist
 import Data.Maybe
+import Data.Tree
 
 %default total
 
@@ -46,6 +47,29 @@ expand f (MkCotree v vs) = let MkCotree v2 vs2 = iterate f v
   where run : Coforest a -> Coforest a -> Coforest a
         run []        ys = ys
         run (x :: xs) ys = expand f x :: run xs ys
+
+--------------------------------------------------------------------------------
+--          To and from Tree
+--------------------------------------------------------------------------------
+
+public export
+fromTree : Tree a -> Cotree a
+fromTree (MkTree v fo) = MkCotree v (fromForest fo)
+  where fromForest : Forest a -> Coforest a
+        fromForest []        = []
+        fromForest (x :: xs) = fromTree x :: fromForest xs
+
+||| Converts a Cotree to a tree of the given maximum depth and width.
+||| The maximum numbers of elements in the tree will be
+||| maxWidth ^ maxDepth.
+public export
+toTree : (maxDepth : Nat) -> (maxWidth : Nat) -> Cotree a -> Tree a
+toTree 0     _  (MkCotree v fo) = MkTree v []
+toTree (S k) mw (MkCotree v fo) = MkTree v (toForest mw fo)
+  where toForest : Nat -> Coforest a -> Forest a
+        toForest 0     _         = []
+        toForest (S n) []        = []
+        toForest (S n) (t :: ts) = toTree k mw t :: toForest n ts
 
 --------------------------------------------------------------------------------
 --          Functor and Applicative
