@@ -8,4 +8,5 @@ modules = Data.Bits
         , Data.Cotree
 
         , Hedgehog.Internal.Config
+        , Hedgehog.Internal.Seed
         , Hedgehog.Internal.Util
