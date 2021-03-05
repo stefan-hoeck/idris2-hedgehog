@@ -14,7 +14,7 @@ there and a [tutorial](src/Doc/Intro.md) is in the making.
 
   * Colorized test output with pretty printing of value
     diffs in case of failed tests (right now, colorize output
-    has to be abled by setting environment variable
+    has to be enabled by setting environment variable
     `HEDGEHOG_COLOR="1"`).
 
   * Conveniently define generators for regular
