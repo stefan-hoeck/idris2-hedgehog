@@ -191,15 +191,24 @@ checkTerm term color name si se prop =
      pure result
 
 covering
-checkNamed :  HasIO io
-           => Terminal
-           -> UseColor
-           -> Maybe PropertyName
-           -> Property
-           -> io (Report Result)
-checkNamed term color name prop =
+checkWith :  HasIO io
+          => Terminal
+          -> UseColor
+          -> Maybe PropertyName
+          -> Property
+          -> io (Report Result)
+checkWith term color name prop =
   do seed <- initSMGen
      checkTerm term color name 0 seed prop
+
+||| Check a property.
+export covering
+checkNamed : HasIO io => PropertyName -> Property -> io Bool
+checkNamed name prop = do
+  color <- detectColor
+  term  <- console
+  rep   <- checkWith term color (Just name) prop
+  pure $ rep.status == OK
 
 ||| Check a property.
 export covering
@@ -207,7 +216,7 @@ check : HasIO io => Property -> io Bool
 check prop = do
   color <- detectColor
   term  <- console
-  rep   <- checkNamed term color Nothing prop
+  rep   <- checkWith term color Nothing prop
   pure $ rep.status == OK
 
 ||| Check a property using a specific size and seed.
@@ -227,7 +236,7 @@ checkGroupWith :  Terminal
 checkGroupWith term color = run neutral
   where run : Summary -> List (PropertyName, Property) -> IO Summary
         run s [] = pure s
-        run s ((pn,p) :: ps) = do rep  <- checkNamed term color (Just pn) p
+        run s ((pn,p) :: ps) = do rep  <- checkWith term color (Just pn) p
                                   run (s <+> fromResult rep.status) ps
   
 export covering
