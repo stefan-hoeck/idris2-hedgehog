@@ -290,7 +290,7 @@ ppFailureReport nm tests (MkFailureReport si se _ mcover inputs msg mdiff msgs0)
              <+> maybe [] ppDiff mdiff
 
         args : List (Doc Markup)
-        args = zipWith ppFailedInput [0 .. length inputs] inputs
+        args = zipWith ppFailedInput [0 .. length inputs] (reverse inputs)
 
         coverage : List (Doc Markup)
         coverage =
