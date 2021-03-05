@@ -174,12 +174,12 @@ int1000 = int $ constant 0 1000
 
 propIntGreaterApp : Property
 propIntGreaterApp = property $ do [a,b] <- forAll $ vect 2 int1000
-                                  (a < b) === True
+                                  assert (a < b)
 
 propIntGreaterMonad : Property
 propIntGreaterMonad = property $ do a <- forAll int1000
                                     b <- forAll int1000
-                                    (a < b) === True
+                                    assert (a < b)
 
 checkIntGreater : IO ()
 checkIntGreater =  checkNamed "propIntGreaterApp" propIntGreaterApp
@@ -196,10 +196,6 @@ In the first case, we get output similar to the following:
 >   forAll 0 =
 >     [ 0 , 0 ]
 > 
->   ━━━ Failed (- lhs) (+ rhs) ━━━
->   - False
->   + True
->   
 >   This failure can be reproduced by running:
 >   > recheck 0 (MkSeed 6832087575862183383 12092602541466451199) propIntGreaterApp
 ```
@@ -217,10 +213,6 @@ In the second case, however, the output is most likely similar to this:
 > 
 >   forAll 1 =
 >     0
-> 
->   ━━━ Failed (- lhs) (+ rhs) ━━━
->   - False
->   + True
 > 
 >   This failure can be reproduced by running:
 >   > recheck 0 (MkSeed 9029460602319538061 261492196152102529) propIntGreaterMonad
