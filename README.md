@@ -27,6 +27,8 @@ there and a [tutorial](src/Doc/Intro.md) is in the making.
     is not possible here due to the codata nature of the
     trees we use for shrinking.
 
+  * Classify generated values and verify test coverage.
+
 ## Limitations (compared to the Haskell version)
 
   * No filtering of generators: In my experience, generators
