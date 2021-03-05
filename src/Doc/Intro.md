@@ -223,3 +223,63 @@ counter example. The reason for this is explained in detail in
 [this blog post](https://www.well-typed.com/blog/2019/05/integrated-shrinking/).
 The important message is: For optimal shrinking, combine generators using
 `Gen`s applicative implementation whenever possible.
+
+### Debugging Generators: Labels and Footnotes
+
+It is often useful to make sure that generators behave correctly.
+There are several facilities for this. In the most simple case, we
+classify generated values according to one or more criteria,
+generating some pretty output. The following runs 10000 tests,
+putting generated integers into one of five classes.
+
+```idris
+propTwice : Property
+propTwice = withTests 10000 . property $
+               do n <- forAll int1000
+                  classify "zero" (n == 0)
+                  classify "one" (n == 1)
+                  classify "below 10" (n > 1 && n < 10)
+                  classify "below 100" (n >= 10 && n < 100)
+                  classify "above 100" (n >= 100)
+                  (2 * n) === (n + n)
+
+checkTwice : IO Bool
+checkTwice = checkNamed "propTwice" propTwice
+```
+
+Eventually, the output will look similar to the one below:
+
+```
+> ✓ propTwice passed 10000 tests.
+>   above 100 90.1% ██████████████████··
+>   below 10   0.8% ▏···················
+>   below 100  8.9% █▊··················
+>   one        0.1% ····················
+>   zero       0.1% ····················
+                      
+```
+
+Sometimes, however, we'd like to have stronger guarantees.
+In the following example, the test fails if not at least
+five percent of the generated values are in the interval [10,100)
+or if not at least eighty percent are in the interval [100,1000]:
+
+```idris
+propTwice2 : Property
+propTwice2 = withTests 10000 . property $
+                do n <- forAll int1000
+                   cover 5 "[10,100)" (n >= 10 && n < 100)
+                   cover 80 "[100,1000]" (n >= 100)
+                   (2 * n) === (n + n)
+
+checkTwice2 : IO Bool
+checkTwice2 = checkNamed "propTwice2" propTwice2
+```
+
+The output will look similar to this:
+
+```
+> ✓ propTwice2 passed 10000 tests.
+>   [10,100)    9.1% █▊·················· ✓  5.0%
+>   [100,1000] 89.9% █████████████████▉·· ✓ 80.0%
+```
