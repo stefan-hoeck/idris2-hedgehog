@@ -1,7 +1,9 @@
 module Hedgehog.Internal.Seed
 
-import Data.Fin
+import Data.Bounded
 import Data.Bits
+import Data.DPair
+import Data.Fin
 
 import Generics.Derive
 
@@ -10,13 +12,60 @@ import Generics.Derive
 %language ElabReflection
 
 --------------------------------------------------------------------------------
+--          Temporary Orphans
+--------------------------------------------------------------------------------
+
+public export %inline
+Bits Bits64 where
+  Index       = Subset Nat (`LT` 64)
+  (.&.)       = prim__and_Bits64
+  (.|.)       = prim__or_Bits64
+  xor         = prim__xor_Bits64
+  bit         = (1 `shiftL`)
+  zeroBits    = 0
+  testBit x i = (x .&. bit i) /= 0
+  shiftR x    = prim__shr_Bits64 x . fromInteger . cast . fst
+  shiftL x    = prim__shl_Bits64 x . fromInteger . cast . fst
+  complement  = xor 0xffffffffffffffff
+  oneBits     = 0xffffffffffffffff
+
+public export %inline
+FiniteBits Bits64 where
+  bitSize     = 64
+  bitsToIndex = id
+
+  popCount x0 =
+    -- see https://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-64-bit-integer
+    let x1 = (x0 .&. 0x5555555555555555) +
+             ((x0 `shiftR` fromNat 1) .&. 0x5555555555555555)
+        x2 = (x1 .&. 0x3333333333333333)
+             + ((x1 `shiftR` fromNat 2) .&. 0x3333333333333333)
+        x3 = ((x2 + (x2 `shiftR` fromNat 4)) .&. 0x0F0F0F0F)
+        x4 = (x3 * 0x0101010101010101) `shiftR` fromNat 56
+     in fromInteger $ cast x4
+
+public export %inline
+Bits Integer where
+  Index       = Nat
+  (.&.)       = prim__and_Integer
+  (.|.)       = prim__or_Integer
+  xor         = prim__xor_Integer
+  bit         = (1 `shiftL`)
+  zeroBits    = 0
+  testBit x i = (x .&. bit i) /= 0
+  shiftR x    = prim__shr_Integer x . cast
+  shiftL x    = prim__shl_Integer x . cast
+  complement  = xor (-1)
+  oneBits     = (-1)
+
+--------------------------------------------------------------------------------
 --          Implementation Utilities
 --------------------------------------------------------------------------------
 
-shiftXor : Bits64 -> Bits64 -> Bits64
+shiftXor : Index {a = Bits64} -> Bits64 -> Bits64
 shiftXor n w = w `xor` (w `shiftR` n)
 
-shiftXorMultiply : Bits64 -> Bits64 -> Bits64 -> Bits64
+shiftXorMultiply : Index {a = Bits64} -> Bits64 -> Bits64 -> Bits64
 shiftXorMultiply n k w = shiftXor n w * k
 
 -- Note: in JDK implementations the mix64 and mix64variant13
@@ -24,9 +73,9 @@ shiftXorMultiply n k w = shiftXor n w * k
 mix64 : Bits64 -> Bits64
 mix64 z0 =
    -- MurmurHash3Mixer
-    let z1 = shiftXorMultiply 33 0xff51afd7ed558ccd z0
-        z2 = shiftXorMultiply 33 0xc4ceb9fe1a85ec53 z1
-        z3 = shiftXor 33 z2
+    let z1 = shiftXorMultiply (fromNat 33) 0xff51afd7ed558ccd z0
+        z2 = shiftXorMultiply (fromNat 33) 0xc4ceb9fe1a85ec53 z1
+        z3 = shiftXor (fromNat 33) z2
     in z3
 
 -- used only in mixGamma
@@ -36,15 +85,15 @@ mix64variant13 z0 =
    -- http://zimbry.blogspot.fi/2011/09/better-bit-mixing-improving-on.html
    --
    -- Stafford's Mix13
-    let z1 = shiftXorMultiply 30 0xbf58476d1ce4e5b9 z0 -- MurmurHash3 mix constants
-        z2 = shiftXorMultiply 27 0x94d049bb133111eb z1
-        z3 = shiftXor 31 z2
+    let z1 = shiftXorMultiply (fromNat 30) 0xbf58476d1ce4e5b9 z0 -- MurmurHash3 mix constants
+        z2 = shiftXorMultiply (fromNat 27) 0x94d049bb133111eb z1
+        z3 = shiftXor (fromNat 31) z2
     in z3
 
 mixGamma : Bits64 -> Bits64
 mixGamma z0 =
     let z1 = mix64variant13 z0 .|. 1             -- force to be odd
-        n  = popCount (z1 `xor` (z1 `shiftR` 1))
+        n  = popCount (z1 `xor` (z1 `shiftR` fromNat 1))
     -- see: http://www.pcg-random.org/posts/bugs-in-splitmix.html
     -- let's trust the text of the paper, not the code.
     in if n >= 24
@@ -58,11 +107,16 @@ bits64ToDouble : Bits64 -> Double
 bits64ToDouble = fromInteger . cast
 
 doubleUlp : Double
-doubleUlp =  1.0 / bits64ToDouble (prim__shl_Bits64 1 53)
+doubleUlp =  1.0 / bits64ToDouble (1 `shiftL` fromNat 53)
 
 mask : Bits64 -> Bits64
-mask n = sl 1 . sl 2 . sl 4 . sl 8 . sl 16 $ sl 32 maxBound
-  where sl : Bits64 -> Bits64 -> Bits64
+mask n = sl (fromNat 1) 
+       . sl (fromNat 2) 
+       . sl (fromNat 4) 
+       . sl (fromNat 8) 
+       . sl (fromNat 16) 
+       $ sl (fromNat 32) maxBound
+  where sl : Index {a = Bits64} -> Bits64 -> Bits64
         sl s x = let x' = shiftR x s
                   in if x' < n then x else x'
 
@@ -113,7 +167,7 @@ nextBits64 (MkSeed seed gamma) = let seed' = seed + gamma
 export
 nextDouble : Seed -> (Double, Seed)
 nextDouble g = let (w64,g') = nextBits64 g
-                in (bits64ToDouble (w64 `shiftR` 11) * doubleUlp, g')
+                in (bits64ToDouble (w64 `shiftR` fromNat 11) * doubleUlp, g')
 
 ||| Generate a `Double` in [x, y) range.
 export

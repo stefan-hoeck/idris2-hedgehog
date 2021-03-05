@@ -9,8 +9,7 @@ depends    = base        >= 0.3.0
            , pretty-show >= 0.1.0
            , sop         >= 0.1.1
 
-modules = Data.Bits
-        , Data.Bounded
+modules = Data.Bounded
         , Data.Cotree
         , Data.Tree
 
