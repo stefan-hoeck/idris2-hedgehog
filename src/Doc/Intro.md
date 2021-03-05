@@ -66,7 +66,7 @@ based testing can be useful in Idris when we are dealing with
 functions that are not reduced during unification. The behavior
 of such functions cannot be verified at compile time. An example
 for this are functions `fastPack` and `fastUnpack` from `Data.String`.
-We'd like to verify that the two functions to not modify their
+We'd like to verify that the two functions do not modify their
 input. String generators are derived from the one for lists,
 so their definition is very similar:
 
@@ -121,13 +121,13 @@ propAddInts =
                     (a + b) === (c + d)
 ```
 
-Before we look at what happens when we check this propert,
+Before we look at what happens when we check this property,
 I'd like to quickly explain the `np` generator.
 The Idris version of Hedgehog supports the heterogeneous
 sums of products from the [idris2-sop](https://github.com/stefan-hoeck/idris2-sop)
 library via generators `np`, `ns`, and `sop`.
 These generators work as expected with good out-of-the box
-shrinking. It is therefore advisable, to use one of these
+shrinking. It is therefore advisable to use one of these
 when generating several unrelated values in parallel.
 As an alternative, we could also have used `vect 4 int20`
 in this case.
@@ -137,10 +137,10 @@ checkFailing1 : IO Bool
 checkFailing1 = checkNamed "propAddInts" propAddInts
 ```
 
-Running the above check results in output similar to this:
+Running the above results in output similar to this:
 
 ```
-> ✗ integer addition failed after 7 tests.
+> ✗ propAddInts failed after 7 tests.
 > 
 >   forAll 0 =
 >     [ 0 , 0 , 0 , 1 ]
