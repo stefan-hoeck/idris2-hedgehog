@@ -18,7 +18,7 @@ import Data.Vect
 import Hedgehog
 ```
 
-### A Frist Example Test
+### A First Example
 To give a first example of the capabilities of this library,
 we verify that reversing a list twice will lead to the original
 list. This is - of course - completely pointless in Idris, since
@@ -224,7 +224,7 @@ counter example. The reason for this is explained in detail in
 The important message is: For optimal shrinking, combine generators using
 `Gen`s applicative implementation whenever possible.
 
-### Debugging Generators: Labels and Footnotes
+### Debugging Generators: Classifiers and Test Coverage
 
 It is often useful to make sure that generators behave correctly.
 There are several facilities for this. In the most simple case, we
