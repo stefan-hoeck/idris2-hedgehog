@@ -29,10 +29,6 @@ export
 Show a => Show (Subset a t) where
   showPrec p (Element v _) = showPrec p v
 
-export
-(Eq k, Eq v) => Eq (SortedMap k v) where
-  (==) = (==) `on` Data.SortedMap.toList
-
 --------------------------------------------------------------------------------
 --          Tagged Primitives
 --------------------------------------------------------------------------------
