@@ -25,6 +25,9 @@ findM (S k) (t :: ts) b f = do Just b2 <- f (S k) t.value
                                  | Nothing => findM k ts b f
                                findM k t.forest b2 f
 
+multOf100 : TestCount -> Bool
+multOf100 (MkTagged n) = natToInteger n `mod` 100 == 0
+
 takeSmallest :
      Monad m
   => Size
@@ -74,10 +77,7 @@ checkReport cfg size0 seed0 test updateUI =
           NoConfidenceTermination t => (Nothing, t)
 
    in loop 0 size0 seed0 neutral confidence minTests
-  where multOf100 : TestCount -> Bool
-        multOf100 (MkTagged n) = natToInteger n `mod` 100 == 0
-
-        successVerified : TestCount -> Coverage CoverCount -> Maybe Confidence -> Bool
+  where successVerified : TestCount -> Coverage CoverCount -> Maybe Confidence -> Bool
         successVerified count coverage confidence =
           multOf100 count &&
           maybe False (\c => confidenceSuccess count c coverage) confidence
@@ -176,10 +176,12 @@ checkTerm :  HasIO io
           -> io (Report Result)
 checkTerm term color name si se prop =
   do result <- checkReport {m = io} prop.config si se prop.test \prog =>
-               let ppprog = renderProgress color name prog
-                in case prog.status of
-                       Running     => putTmp term ppprog
-                       Shrinking _ => putTmp term ppprog
+               if multOf100 prog.tests
+                  then let ppprog = renderProgress color name prog
+                        in case prog.status of
+                               Running     => putTmp term ppprog
+                               Shrinking _ => putTmp term ppprog
+                  else pure ()
 
      let ppresult : String
          ppresult = renderResult color name result
