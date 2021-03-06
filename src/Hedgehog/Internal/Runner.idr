@@ -18,15 +18,17 @@ public export
 TestRes : Type
 TestRes = (Either Failure (), Journal)
 
-findM : Monad m => Nat -> Coforest a -> b -> (Nat -> a -> m (Maybe b)) -> m b
-findM _     []        b _ = pure b
-findM 0 _             b _ = pure b
-findM (S k) (t :: ts) b f = do Just b2 <- f (S k) t.value 
-                                 | Nothing => findM k ts b f
-                               findM k t.forest b2 f
+--------------------------------------------------------------------------------
+--          Shrinking
+--------------------------------------------------------------------------------
 
-multOf100 : TestCount -> Bool
-multOf100 (MkTagged n) = natToInteger n `mod` 100 == 0
+-- Shrinking
+shrink : Monad m => Nat -> Coforest a -> b -> (Nat -> a -> m (Maybe b)) -> m b
+shrink _     []        b _ = pure b
+shrink 0 _             b _ = pure b
+shrink (S k) (t :: ts) b f = do Just b2 <- f (S k) t.value 
+                                  | Nothing => shrink k ts b f
+                                shrink k t.forest b2 f
 
 takeSmallest :
      Monad m
@@ -36,15 +38,17 @@ takeSmallest :
   -> (Progress -> m ())
   -> Cotree TestRes
   -> m Result
-takeSmallest si se slimit updateUI t =
-  do res <- run (MkTagged $ unTag slimit) t.value
+takeSmallest si se (MkTagged slimit) updateUI t =
+  do res <- run 0 t.value
      if isFailure res
-        then findM (unTag slimit) t.forest res runMaybe
+        then shrink slimit t.forest res runMaybe
         else pure res
 
   where
+    -- calc number of shrinks from the remaining
+    -- allowed numer and the shrink limit
     calcShrinks : Nat -> ShrinkCount
-    calcShrinks n = MkTagged $ (unTag slimit `minus` n) + 1
+    calcShrinks rem = MkTagged $ (slimit `minus` rem) + 1
 
     run : ShrinkCount -> TestRes -> m Result
     run shrinks t =
@@ -60,7 +64,11 @@ takeSmallest si se slimit updateUI t =
       do res <- run (calcShrinks shrinksLeft) testRes
          if isFailure res then pure (Just res) else pure Nothing
 
-covering
+--------------------------------------------------------------------------------
+--          Test Runners
+--------------------------------------------------------------------------------
+
+-- main test runner
 checkReport :
      Monad m
   => PropertyConfig
@@ -69,103 +77,48 @@ checkReport :
   -> PropertyT ()
   -> (Report Progress -> m ())
   -> m (Report Result)
-checkReport cfg size0 seed0 test updateUI =
-  let (confidence, minTests) =
-        case cfg.terminationCriteria of
-          EarlyTermination c t      => (Just c, t)
-          NoEarlyTermination c t    => (Just c, t)
-          NoConfidenceTermination t => (Nothing, t)
+checkReport cfg si0 se0 test updateUI =
+  let (conf, MkTagged numTests) = unCriteria cfg.terminationCriteria
+   in loop numTests 0 si0 se0 neutral conf
 
-   in loop 0 size0 seed0 neutral confidence minTests
-  where successVerified : TestCount -> Coverage CoverCount -> Maybe Confidence -> Bool
-        successVerified count coverage confidence =
-          multOf100 count &&
-          maybe False (\c => confidenceSuccess count c coverage) confidence
+  where
+    loop :  Nat
+         -> TestCount
+         -> Size
+         -> Seed
+         -> Coverage CoverCount
+         -> Maybe Confidence
+         -> m (Report Result)
+    loop n tests si se cover conf = do
+      updateUI (MkReport tests cover Running)
+      case n of
+        0   =>
+          -- required number of tests run
+          pure $ report False tests si se cover conf
+        S k =>
+          if abortEarly cfg.terminationCriteria tests cover conf
+             then
+               -- at this point we know that enough
+               -- tests have been run due to early termination
+               pure $ report True tests si se cover conf
+             else
+              -- run another test
+              let (s0,s1) = split se
+                  tr      = runGen si s0 $ runTestT test
+                  nextSize = if si < maxSize then (si + 1) else 0
+               in case tr.value of
+                    -- the test failed, so we abort and shrink
+                    (Left x, _)  =>
+                      let upd = updateUI . MkReport (tests+1) cover
+                       in map (MkReport (tests+1) cover) $
+                            takeSmallest si se cfg.shrinkLimit upd tr
 
-        failureVerified : TestCount -> Coverage CoverCount -> Maybe Confidence -> Bool
-        failureVerified count coverage confidence =
-          multOf100 count &&
-          maybe False (\c => confidenceFailure count c coverage) confidence
+                    -- the test succeeded, so we accumulate results
+                    -- and loop once more
+                    (Right x, journal) =>
+                      let cover1 = journalCoverage journal <+> cover
+                       in loop k (tests + 1) nextSize s1 cover1 conf
 
-        covering
-        loop :  TestCount
-             -> Size
-             -> Seed
-             -> Coverage CoverCount
-             -> Maybe Confidence
-             -> TestLimit
-             -> m (Report Result)
-        loop tests size seed coverage0 confidence minTests =
-          let coverageReached     = successVerified tests coverage0 confidence
-
-              coverageUnreachable = failureVerified tests coverage0 confidence
-
-              enoughTestsRun =
-                case cfg.terminationCriteria of
-                  EarlyTermination _ _ =>
-                    unTag tests >= unTag defaultMinTests &&
-                    (coverageReached || coverageUnreachable)
-                  NoEarlyTermination _ _    => unTag tests >= unTag minTests
-                  NoConfidenceTermination _ => unTag tests >= unTag minTests
-
-              labelsCovered = coverageSuccess tests coverage0
-
-              successReport = MkReport tests coverage0 OK
-
-              failureReport = \msg =>
-                MkReport tests coverage0 . Failed $
-                  mkFailure size seed 0 (Just coverage0) msg Nothing []
-
-              confidenceReport =
-                if coverageReached && labelsCovered
-                   then successReport
-                   else failureReport $
-                          "Test coverage cannot be reached after " <+>
-                          show tests <+>
-                          " tests"
-
-           in do updateUI $ MkReport tests coverage0 Running
-                 if size == maxSize
-                    then loop tests 0 seed coverage0 confidence minTests
-                    else if enoughTestsRun
-                      then
-                         -- at this point, we know that enough
-                         -- tests have been run in order to
-                         -- make a decision on if this was a
-                         -- successful run or not
-                         --
-                         -- If we have early termination, then we need
-                         -- to check coverageReached / coverageUnreachable
-                         pure $ case cfg.terminationCriteria of
-                           EarlyTermination _ _ => confidenceReport
-                           NoEarlyTermination _ _ => confidenceReport
-                           NoConfidenceTermination _ =>
-                             if labelsCovered then
-                               successReport
-                             else
-                               failureReport $
-                                 "Labels not sufficently covered after " <+>
-                                 show tests <+>
-                                 " tests"
-                      else
-                        let (s0,s1) = split seed
-                            tr      = runGen size s0 $ runTestT test
-                         in case tr.value of
-                                 (Left x, _)  =>
-                                    map (MkReport (tests+1) coverage0) $
-                                      takeSmallest
-                                        size
-                                        seed
-                                        cfg.shrinkLimit
-                                        (updateUI . MkReport (tests+1) coverage0)
-                                        tr
-
-                                 (Right x, journal) =>
-                                   let coverage = journalCoverage journal <+> coverage0
-                                    in loop (tests + 1) (size + 1) s1 coverage confidence minTests
-                        
-
-covering
 checkTerm :  HasIO io
           => Terminal
           -> UseColor
@@ -183,16 +136,9 @@ checkTerm term color name si se prop =
                                Shrinking _ => putTmp term ppprog
                   else pure ()
 
-     let ppresult : String
-         ppresult = renderResult color name result
-
-     case result.status of
-          Failed f => putOut term ppresult
-          OK       => putOut term ppresult
-
+     putOut term (renderResult color name result)
      pure result
 
-covering
 checkWith :  HasIO io
           => Terminal
           -> UseColor
@@ -200,11 +146,10 @@ checkWith :  HasIO io
           -> Property
           -> io (Report Result)
 checkWith term color name prop =
-  do seed <- initSMGen
-     checkTerm term color name 0 seed prop
+  initSMGen >>= \se => checkTerm term color name 0 se prop
 
 ||| Check a property.
-export covering
+export
 checkNamed : HasIO io => PropertyName -> Property -> io Bool
 checkNamed name prop = do
   color <- detectColor
@@ -213,7 +158,7 @@ checkNamed name prop = do
   pure $ rep.status == OK
 
 ||| Check a property.
-export covering
+export
 check : HasIO io => Property -> io Bool
 check prop = do
   color <- detectColor
@@ -222,15 +167,14 @@ check prop = do
   pure $ rep.status == OK
 
 ||| Check a property using a specific size and seed.
-export covering
+export
 recheck : HasIO io => Size -> Seed -> Property -> io ()
-recheck size seed prop = do
+recheck si se prop = do
   color <- detectColor
   term  <- console
-  _     <- checkTerm term color Nothing size seed (withTests 1 prop)
+  _     <- checkTerm term color Nothing si se (withTests 1 prop)
   pure ()
 
-covering
 checkGroupWith :  Terminal
                -> UseColor
                -> List (PropertyName, Property)
@@ -241,7 +185,7 @@ checkGroupWith term color = run neutral
         run s ((pn,p) :: ps) = do rep  <- checkWith term color (Just pn) p
                                   run (s <+> fromResult rep.status) ps
   
-export covering
+export
 checkGroup : HasIO io => Group -> io Bool
 checkGroup (MkGroup group props) =
   do term    <- console

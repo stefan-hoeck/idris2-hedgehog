@@ -538,3 +538,41 @@ renderResult color name = renderDoc color . ppResult name
 export
 renderSummary : UseColor -> Summary -> String
 renderSummary color = renderDoc color . ppSummary
+
+--------------------------------------------------------------------------------
+--          Test Report
+--------------------------------------------------------------------------------
+
+export
+report :  (aborted : Bool)
+       -> TestCount
+       -> Size
+       -> Seed
+       -> Coverage CoverCount
+       -> Maybe Confidence
+       -> Report Result
+report aborted tests size seed cover conf =
+  let failureReport = \msg =>
+        MkReport tests cover . Failed $
+          mkFailure size seed 0 (Just cover) msg Nothing []
+
+      coverageReached = successVerified tests cover conf
+
+      labelsCovered = coverageSuccess tests cover
+
+      successReport = MkReport tests cover OK
+
+      confidenceReport =
+        if coverageReached && labelsCovered
+           then successReport
+           else failureReport $
+                  "Test coverage cannot be reached after " <+>
+                  show tests <+>
+                  " tests"
+
+  in if aborted then confidenceReport
+     else if labelsCovered then successReport
+     else failureReport $
+          "Labels not sufficently covered after " <+>
+          show tests <+>
+          " tests"

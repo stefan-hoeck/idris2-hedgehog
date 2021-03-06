@@ -307,6 +307,13 @@ data TerminationCriteria =
 
 %runElab derive "TerminationCriteria" [Generic,Meta,Show,Eq]
 
+public export
+unCriteria : TerminationCriteria -> (Maybe Confidence, TestLimit)
+unCriteria (EarlyTermination c t)      = (Just c, t)
+unCriteria (NoEarlyTermination c t)    = (Just c, t)
+unCriteria (NoConfidenceTermination t) = (Nothing, t)
+
+
 ||| Configuration for a property test.
 public export
 record PropertyConfig where
@@ -738,3 +745,33 @@ confidenceFailure tests confidence =
         assertHigh cc =
           snd (boundsForLabel tests confidence cc) <
           (unTag cc.labelMinimum / 100.0)
+
+export
+multOf100 : TestCount -> Bool
+multOf100 (MkTagged n) = natToInteger n `mod` 100 == 0
+
+export
+failureVerified : TestCount -> Coverage CoverCount -> Maybe Confidence -> Bool
+failureVerified count cover conf =
+  multOf100 count &&
+  maybe False (\c => confidenceFailure count c cover) conf
+
+export
+successVerified : TestCount -> Coverage CoverCount -> Maybe Confidence -> Bool
+successVerified count cover conf =
+  multOf100 count &&
+  maybe False (\c => confidenceSuccess count c cover) conf
+
+export
+abortEarly :  TerminationCriteria
+           -> TestCount
+           -> Coverage CoverCount
+           -> Maybe Confidence
+           -> Bool
+abortEarly (EarlyTermination _ _) tests cover conf =
+  let coverageReached     = successVerified tests cover conf
+      coverageUnreachable = failureVerified tests cover conf
+   in unTag tests >= unTag defaultMinTests &&
+      (coverageReached || coverageUnreachable)
+
+abortEarly _ _ _ _ = False
