@@ -26,7 +26,7 @@ TestRes = (Either Failure (), Journal)
 shrink : Monad m => Nat -> Coforest a -> b -> (Nat -> a -> m (Maybe b)) -> m b
 shrink _     []        b _ = pure b
 shrink 0 _             b _ = pure b
-shrink (S k) (t :: ts) b f = do Just b2 <- f (S k) t.value 
+shrink (S k) (t :: ts) b f = do Just b2 <- f (S k) t.value
                                   | Nothing => shrink k ts b f
                                 shrink k t.forest b2 f
 
@@ -184,7 +184,7 @@ checkGroupWith term color = run neutral
         run s [] = pure s
         run s ((pn,p) :: ps) = do rep  <- checkWith term color (Just pn) p
                                   run (s <+> fromResult rep.status) ps
-  
+
 export
 checkGroup : HasIO io => Group -> io Bool
 checkGroup (MkGroup group props) =

@@ -42,7 +42,7 @@ unfold : (depth : Nat) -> (f : s -> (a,List s)) -> s -> Tree a
 unfold 0     f s = MkTree (fst $ f s) []
 unfold (S k) f s = let (a,ss) = f s
                     in MkTree a (map (unfold k f) ss)
-                       
+
 --------------------------------------------------------------------------------
 --          Flattening Trees
 --------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ joinTree (MkTree (MkTree va tas) ftas) =
   where joinF : Forest (Tree a) -> Forest a
         joinF []        = []
         joinF (x :: xs) = joinTree x :: joinF xs
-                       
+
 eqTree : Eq a => Tree a -> Tree a -> Bool
 eqTree (MkTree x xs) (MkTree y ys) = x == y && eqF xs ys
   where eqF : Forest a -> Forest a -> Bool

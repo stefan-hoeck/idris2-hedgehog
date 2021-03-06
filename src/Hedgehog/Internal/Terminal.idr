@@ -20,7 +20,7 @@ export
 console : HasIO io => io Terminal
 console = do ref <- newIORef []
              pure $ MkTerminal ref putStr putStrErr (fflush stderr)
- 
+
 clearTmp : Terminal -> IO ()
 clearTmp t = do ls <- readIORef t.tmp
                 t.err $ concatMap (\_ => cursorUp1 <+> eraseLine End) ls

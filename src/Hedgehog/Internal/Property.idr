@@ -80,7 +80,7 @@ public export %inline
 Monoid (Tagged tag Nat) where neutral = 0
 
 ||| The total number of tests which are covered by a classifier.
-||| 
+|||
 ||| Can be constructed using numeric literals.
 public export
 CoverCount : Type
@@ -102,7 +102,7 @@ ShrinkCount : Type
 ShrinkCount = Tagged ShrinkCountTag Nat
 
 ||| The number of shrinks to try before giving up on shrinking.
-||| 
+|||
 ||| Can be constructed using numeric literals:
 public export
 ShrinkLimit : Type
@@ -115,7 +115,7 @@ TestCount = Tagged TestCountTag Nat
 
 ||| The number of successful tests that need to be run before a property test
 ||| is considered successful.
-||| 
+|||
 ||| Can be constructed using numeric literals.
 public export
 TestLimit : Type
@@ -127,7 +127,7 @@ PropertyName : Type
 PropertyName = Tagged PropertyNameTag String
 
 ||| The acceptable occurrence of false positives
-||| 
+|||
 ||| Example, `the Confidence 1000000000` would mean that
 ||| you'd accept a false positive
 ||| for 1 in 10^9 tests.
@@ -202,7 +202,7 @@ toCoverCount NotCovered = 0
 toCoverCount Covered    = 1
 
 ||| The extent to which a test is covered by a classifier.
-||| 
+|||
 ||| When a classifier's coverage does not exceed the required minimum, the
 ||| test will be failed.
 public export
@@ -263,7 +263,7 @@ record Failure where
 %runElab derive "Failure" [Generic,Meta,Show,Eq]
 
 ||| The extent to which all classifiers cover a test.
-||| 
+|||
 ||| When a given classification's coverage does not exceed the required/
 ||| minimum, the test will be failed.
 public export
@@ -502,7 +502,7 @@ PropertyT : Type -> Type
 PropertyT = TestT Gen
 
 ||| Generates a random input for the test by running the provided generator.
-||| 
+|||
 ||| This is a the same as 'forAll' but allows the user to provide a custom
 ||| rendering function. This is useful for values which don't have a
 ||| 'Show' instance.
@@ -552,7 +552,7 @@ verifiedTermination =
 
 ||| Set the number of times a property should be executed before it is considered
 ||| successful.
-||| 
+|||
 ||| If you have a test that does not involve any generators and thus does not
 ||| need to run repeatedly, you can use @withTests 1@ to define a property that
 ||| will only be checked once.
@@ -629,7 +629,7 @@ coverageSuccess tests c = null $ coverageFailures tests c
 |||        cover 30 "True" $ match
 |||        cover 30 "False" $ not match
 ||| ```
-||| 
+|||
 ||| The example above requires a minimum of 30% coverage for both
 ||| classifiers. If these requirements are not met, it will fail the test.
 export
@@ -639,7 +639,7 @@ cover min name covered =
    in writeLog $ LogLabel (MkLabel name min cover)
 
 ||| Records the proportion of tests which satisfy a given condition.
-||| 
+|||
 ||| ```idris example
 |||    prop_with_classifier : Property
 |||    prop_with_classifier =
@@ -674,9 +674,9 @@ unionsCoverage = MkCoverage . concatMap coverageLabels
 
 export
 journalCoverage : Journal -> Coverage CoverCount
-journalCoverage = map toCoverCount 
-                . unionsCoverage 
-                . (>>= fromLog) 
+journalCoverage = map toCoverCount
+                . unionsCoverage
+                . (>>= fromLog)
                 . journalLogs
   where fromLog : Lazy Log -> List (Coverage Cover)
         fromLog (LogLabel x)   = [fromLabel x]

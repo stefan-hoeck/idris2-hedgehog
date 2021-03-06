@@ -115,7 +115,7 @@ resize : Size -> Gen a -> Gen a
 resize size = scale (const size)
 
 ||| Scale a size using the golden ratio.
-||| 
+|||
 |||   > golden x = x / φ
 |||   > golden x = x / 1.61803..
 public export %inline
@@ -178,56 +178,56 @@ integral : ToInteger a => Range a -> Gen a
 integral range = shrink (towards $ origin range) (integral_ range)
 
 ||| Generates a random machine integer in the given range.
-||| 
+|||
 ||| This is a specialization of `integral`, offered for convenience.
 public export %inline
 int : Range Int -> Gen Int
 int = integral
 
 ||| Generates a random 8-bit integer in the given range.
-||| 
+|||
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 bits8 : Range Bits8 -> Gen Bits8
 bits8 = integral
 
 ||| Generates a random 16-bit integer in the given range.
-||| 
+|||
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 bits16 : Range Bits16 -> Gen Bits16
 bits16 = integral
 
 ||| Generates a random 32-bit integer in the given range.
-||| 
+|||
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 bits32 : Range Bits32 -> Gen Bits32
 bits32 = integral
 
 ||| Generates a random 64-bit integer in the given range.
-||| 
+|||
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 bits64 : Range Bits64 -> Gen Bits64
 bits64 = integral
 
 ||| Generates a random Integer in the given range.
-||| 
+|||
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 integer : Range Integer -> Gen Integer
 integer = integral
 
 ||| Generates a random Nat in the given range.
-||| 
+|||
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 nat : Range Nat -> Gen Nat
 nat = integral
 
 ||| Generates a random Size in the given range.
-||| 
+|||
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 size : Range Size -> Gen Size
@@ -246,7 +246,7 @@ fin range = let rangeInt = map finToInteger range
 --------------------------------------------------------------------------------
 
 ||| Generates a random fractional number in the [inclusive,exclusive) range.
-||| 
+|||
 ||| This generator does not shrink.
 export %inline
 double_ : Range Double -> Gen Double
@@ -254,9 +254,9 @@ double_ range = generate \si,se => let (x, y) = bounds si range
                                     in fst $ nextDoubleR x y se
 
 ||| Generates a random floating-point number in the given range.
-||| 
+|||
 ||| This generator works the same as 'integral', but for floating point numbers.
-||| 
+|||
 export %inline
 double : Range Double -> Gen Double
 double range = shrink (towardsDouble $ origin range) (double_ range)
@@ -266,35 +266,35 @@ double range = shrink (towardsDouble $ origin range) (double_ range)
 --------------------------------------------------------------------------------
 
 ||| Trivial generator that always produces the same element.
-||| 
+|||
 ||| This is another name for `pure`.
 public export %inline
 constant : a -> Gen a
 constant = pure
 
 ||| Randomly selects one of the elements in the vector.
-||| 
+|||
 ||| This generator shrinks towards the first element in the vector.
 public export %inline
 element : {k : _} -> Vect (S k) a -> Gen a
 element vs = map (`index` vs) (fin $ constant FZ last)
 
 ||| Randomly selects one of the elements in the vector.
-||| 
+|||
 ||| This generator does not shrink.
 public export %inline
 element_ : {k : _} -> Vect (S k) a -> Gen a
 element_ = prune . element
 
 ||| Randomly selects one of the generators in the vector.
-||| 
+|||
 ||| This generator shrinks towards the first generator in the vector.
 public export %inline
 choice : {k : _} -> Vect (S k) (Gen a) -> Gen a
 choice vs = element vs >>= id
 
 ||| Randomly selects one of the generators in the vector.
-||| 
+|||
 ||| This generator does not shrink towards a particular
 ||| generator in the vector
 public export %inline
@@ -303,7 +303,7 @@ choice_ vs = element_ vs >>= id
 
 ||| Uses a weighted distribution to randomly select one of the generators in
 ||| the vector.
-||| 
+|||
 ||| This generator shrinks towards the first generator in the vector.
 |||
 ||| Note that if the given frequencies sum up to 0, the first element
@@ -324,7 +324,7 @@ frequency ps =
         choose ((i, v) :: ps) k = if i >= k then v else choose ps k
 
 ||| Generates a random boolean.
-||| 
+|||
 ||| This generator shrinks to `False`.
 public export %inline
 bool : Gen Bool
@@ -403,7 +403,7 @@ latin = charc '\0' '\255'
 ||| and invalid standalone surrogates:
 ||| `'\0'..'\1114111'` (excluding '\55296'..'\57343', '\65534', '\65535')`
 export %inline
-unicode : Gen Char 
+unicode : Gen Char
 unicode = frequency [ (55296, charc '\0' '\55295')
                     , (8190, charc '\57344' '\65533')
                     , (1048576, charc '\65536' '\1114111')
@@ -412,7 +412,7 @@ unicode = frequency [ (55296, charc '\0' '\55295')
 ||| Generates a Unicode character, including noncharacters
 ||| and invalid standalone surrogates: `'\0'..'\1114111'`
 export %inline
-unicodeAll : Gen Char 
+unicodeAll : Gen Char
 unicodeAll = charc '\0' '\1114111'
 
 --------------------------------------------------------------------------------
@@ -427,7 +427,7 @@ maybe gen = sized \s => frequency [ (2, constant Nothing)
                                   ]
 
 ||| Generates either an 'a' or a 'b'.
-||| 
+|||
 ||| As the size grows, this generator generates @Right@s more often than @Left@s.
 export %inline
 either : Gen a -> Gen b -> Gen (Either a b)
@@ -435,7 +435,7 @@ either genA genB = sized \s => frequency [ (2, Left <$> genA)
                                          , (S s.size, Right <$> genB)
                                          ]
 ||| Generates either an 'a' or a 'b', without bias.
-||| 
+|||
 ||| This generator generates as many @Right@s as it does @Left@s.
 export %inline
 either_ : Gen a -> Gen b -> Gen (Either a b)
@@ -510,7 +510,7 @@ sop p = let (_ ** vs) = collapseNPV {a = SOP Gen tss} (apInjsPOP_ p)
 
 ||| Print the value produced by a generator, and the first level of shrinks,
 ||| for the given size and seed.
-||| 
+|||
 ||| Use 'print' to generate a value from a random seed.
 export
 printWith : (HasIO io, Show a) => Size -> Seed -> Gen a -> io ()
@@ -522,11 +522,11 @@ printWith si se gen = let (MkCotree v fo) = runGen si se gen
                              traverse_ printLn shrinks
 ||| Run a generator with a random seed and print the outcome, and the first
 ||| level of shrinks.
-||| 
+|||
 ||| @
 ||| Gen.print (Gen.'enum' \'a\' \'f\')
 ||| @
-||| 
+|||
 |||   > === Outcome ===
 |||   > 'd'
 |||   > === Shrinks ===
@@ -572,11 +572,11 @@ printTreeWith :  (HasIO io, Show a)
 printTreeWith md mw si se = putStrLn . renderTree md mw si se
 
 ||| Run a generator with a random seed and print the resulting shrink tree.
-||| 
+|||
 ||| @
 ||| Gen.printTree (Gen.'enum' \'a\' \'f\')
 ||| @
-||| 
+|||
 |||   > 'd'
 |||   >  ├╼'a'
 |||   >  ├╼'b'
@@ -585,9 +585,9 @@ printTreeWith md mw si se = putStrLn . renderTree md mw si se
 |||   >     ├╼'a'
 |||   >     └╼'b'
 |||   >        └╼'a'
-||| 
+|||
 |||   /This may not terminate when the tree is very large./
-||| 
+|||
 export
 printTree :  (HasIO io, Show a)
           => (maxDepth : Nat)

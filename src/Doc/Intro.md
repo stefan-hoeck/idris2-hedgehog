@@ -141,14 +141,14 @@ Running the above results in output similar to this:
 
 ```
 > ✗ propAddInts failed after 7 tests.
-> 
+>
 >   forAll 0 =
 >     [ 0 , 0 , 0 , 1 ]
-> 
+>
 >   ━━━ Failed (- lhs) (+ rhs) ━━━
 >   - 0
 >   + 1
-> 
+>
 >   This failure can be reproduced by running:
 >   > recheck 6 (MkSeed 13575607214039863170 538475183012815285) propAddInts
 ```
@@ -192,10 +192,10 @@ In the first case, we get output similar to the following:
 
 ```
 > ✗ propIntGreaterApp failed after 1 test.
-> 
+>
 >   forAll 0 =
 >     [ 0 , 0 ]
-> 
+>
 >   This failure can be reproduced by running:
 >   > recheck 0 (MkSeed 6832087575862183383 12092602541466451199) propIntGreaterApp
 ```
@@ -207,13 +207,13 @@ In the second case, however, the output is most likely similar to this:
 
 ```
 > ✗ propIntGreaterMonad failed after 4 tests.
-> 
+>
 >   forAll 0 =
 >     188
-> 
+>
 >   forAll 1 =
 >     0
-> 
+>
 >   This failure can be reproduced by running:
 >   > recheck 0 (MkSeed 9029460602319538061 261492196152102529) propIntGreaterMonad
 ```
@@ -256,7 +256,7 @@ Eventually, the output will look similar to the one below:
 >   below 100  8.9% █▊··················
 >   one        0.1% ····················
 >   zero       0.1% ····················
-                      
+
 ```
 
 Sometimes, however, we'd like to have stronger guarantees.

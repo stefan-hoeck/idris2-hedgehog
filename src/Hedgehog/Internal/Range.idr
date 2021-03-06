@@ -366,54 +366,54 @@ clamp100_1_50 = Refl
 
 -- scaleLinear0_100_0 : scaleLinear 0 (the Int 0) 100 = 0
 -- scaleLinear0_100_0 = Refl
--- 
+--
 -- scaleLinear0_100_50 : scaleLinear 50 (the Int 0) 100 = 50
 -- scaleLinear0_100_50 = Refl
--- 
+--
 -- scaleLinear0_100_99 : scaleLinear 99 (the Int 0) 100 = 99
 -- scaleLinear0_100_99 = Refl
--- 
+--
 -- scaleLinear0_100_100 : scaleLinear 100 (the Int 0) 100 = 100
 -- scaleLinear0_100_100 = Refl
--- 
+--
 -- bounds_linearFrom0_0_10_20 : bounds 0 (linearFrom Zero (-10) 20) = (0,0)
 -- bounds_linearFrom0_0_10_20 = Refl
--- 
+--
 -- bounds_linearFrom50_0_10_20 : bounds 50 (linearFrom Zero (-10) 20) = (-5,10)
 -- bounds_linearFrom50_0_10_20 = Refl
--- 
+--
 -- bounds_linearFrom100_0_10_20 : bounds 100 (linearFrom Zero (-10) 20) = (-10,20)
 -- bounds_linearFrom100_0_10_20 = Refl
--- 
+--
 -- Bits8Full : Range Bits8
 -- Bits8Full = linearBounded
--- 
+--
 -- bounds_linearBoundedBits8_0 : bounds 0 Bits8Full = (0,0)
 -- bounds_linearBoundedBits8_0 = Refl
--- 
+--
 -- bounds_linearBoundedBits8_50 : bounds 50 Bits8Full = (0,127)
 -- bounds_linearBoundedBits8_50 = Refl
--- 
+--
 -- bounds_linearBoundedBits8_100 : bounds 100 Bits8Full = (0,255)
 -- bounds_linearBoundedBits8_100 = Refl
--- 
+--
 -- IntExp : Range Int
 -- IntExp = exponential 1 32
--- 
+--
 -- bounds_exp_0_1_32 : bounds 0 IntExp = (1,1)
 -- bounds_exp_0_1_32 = Refl
--- 
+--
 -- bounds_exp_20_1_32 : bounds 20 IntExp = (1,2)
 -- bounds_exp_20_1_32 = Refl
--- 
+--
 -- bounds_exp_40_1_32 : bounds 40 IntExp = (1,4)
 -- bounds_exp_40_1_32 = Refl
--- 
+--
 -- bounds_exp_60_1_32 : bounds 60 IntExp = (1,8)
 -- bounds_exp_60_1_32 = Refl
--- 
+--
 -- bounds_exp_80_1_32 : bounds 80 IntExp = (1,16)
 -- bounds_exp_80_1_32 = Refl
--- 
+--
 -- bounds_exp_100_1_32 : bounds 100 IntExp = (1,32)
 -- bounds_exp_100_1_32 = Refl

@@ -94,7 +94,7 @@ interleave tf@(MkCotree vf fs) ta@(MkCotree va as) =
         interleaveFs : Coforest (a -> b) -> Coforest b
         interleaveFs []       = interleaveAs as
         interleaveFs (h :: t) = interleave h ta :: interleaveFs t
-                       
+
 public export
 bind : Cotree a -> (a -> Cotree b) -> Cotree b
 bind (MkCotree v vs) f = let MkCotree w ws = f v
@@ -102,7 +102,7 @@ bind (MkCotree v vs) f = let MkCotree w ws = f v
   where run : Coforest a -> Coforest b -> Coforest b
         run []        ys = ys
         run (x :: xs) ys = bind x f :: run xs ys
-                       
+
 public export
 bindMaybe : Cotree (Maybe a) -> (a -> Cotree (Maybe b)) -> Cotree (Maybe b)
 bindMaybe (MkCotree mv tas) f =

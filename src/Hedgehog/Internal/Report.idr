@@ -50,7 +50,7 @@ data Progress = Running | Shrinking FailureReport
 %runElab derive "Progress" [Generic,Meta,Show,Eq]
 
 ||| The status of a completed property test.
-||| 
+|||
 ||| In the case of a failure it provides the seed used for the test, the
 ||| number of shrinks, and the execution log.
 public export
@@ -112,7 +112,7 @@ record ColumnWidth where
 Semigroup ColumnWidth where
   MkColumnWidth p0 m0 n0 f0 <+> MkColumnWidth p1 m1 n1 f1 =
     MkColumnWidth (max p0 p1) (max m0 m1) (max n0 n1) (max f0 f1)
- 
+
 Monoid ColumnWidth where
   neutral = MkColumnWidth 0 0 0 0
 
@@ -284,7 +284,7 @@ ppFailureReport nm tests (MkFailureReport si se _ mcover inputs msg mdiff msgs0)
 
         bottom : List (Doc Markup)
         bottom = maybe [ppReproduce nm si se] (const Nil) mcover
-        
+
         docs : List (Doc Markup)
         docs = concatMap ppTextLines (msgs0 ++ if msg == "" then [] else [msg])
              <+> maybe [] ppDiff mdiff
@@ -369,7 +369,7 @@ ppCoverBar (MkTagged percentage) (MkTagged minimum) =
                replicate fillErrorWidth (head parts1)
            , annotate CoverageFill . pretty . pack $
                replicate fillSurplusWidth (head parts1)
-           ] 
+           ]
 
 ppLabel : TestCount -> ColumnWidth -> Label CoverCount -> Doc Markup
 ppLabel tests w x@(MkLabel name minimum count) =

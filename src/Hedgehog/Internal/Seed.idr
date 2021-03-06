@@ -110,11 +110,11 @@ doubleUlp : Double
 doubleUlp =  1.0 / bits64ToDouble (1 `shiftL` fromNat 53)
 
 mask : Bits64 -> Bits64
-mask n = sl (fromNat 1) 
-       . sl (fromNat 2) 
-       . sl (fromNat 4) 
-       . sl (fromNat 8) 
-       . sl (fromNat 16) 
+mask n = sl (fromNat 1)
+       . sl (fromNat 2)
+       . sl (fromNat 4)
+       . sl (fromNat 8)
+       . sl (fromNat 16)
        $ sl (fromNat 32) maxBound
   where sl : Index {a = Bits64} -> Bits64 -> Bits64
         sl s x = let x' = shiftR x s
@@ -144,7 +144,7 @@ prim__random_Bits64 : Bits64 -> PrimIO Bits64
 export
 initSMGen : HasIO io => io Seed
 initSMGen = liftIO
-          . map smGen 
+          . map smGen
           $ fromPrim (prim__random_Bits64 maxBound)
 
 ||| Split a generator into a two uncorrelated generators.
