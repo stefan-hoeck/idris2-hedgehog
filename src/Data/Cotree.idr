@@ -199,32 +199,3 @@ takeWhile f = takeBefore (not . f)
 public export %inline
 mapMaybe : (a -> Maybe b) -> Cotree a -> Maybe (Cotree b)
 mapMaybe f = takeBeforeNothing . map f
-
---------------------------------------------------------------------------------
---          Tests
---------------------------------------------------------------------------------
-
-halves : Int -> Cotree Int
-halves = iterate (drop 1 . takeUntil (0 ==) . iterate next)
-  where next : Int -> Int
-        next = (`div` 2)
-
-chars : Char -> Cotree Char
-chars = iterate (drop 1 . takeUntil ('0' ==) . iterate next)
-  where next : Char -> Char
-        next = chr . (\x => x - 1) . ord
-
-bools : Cotree Bool
-bools = iterate next True
-  where next : Bool -> Colist Bool
-        next True  = [False]
-        next False = []
-
-export
-triples : Cotree (Int,Char,Bool)
-triples = (,,) <$> halves 10000 <*> chars 'z' <*> bools
-
-export
-crit1 : (Int,Char,Bool) -> Bool
-crit1 (x, y, z) =  (isDigit y && z)
-                || (x `mod` 2 == 0 && x > 3)
