@@ -215,7 +215,6 @@ So, there is a problem with our lexer. Note, how Hedgehog yields a properly
 shrunk minimal example. The problem at hand: The string "Bb" is
 treated as a single chemical element instead of two atoms of boron
 (one aliphatic, the other aromatic).
-```
 
 The following version fixes this issue, as can be shown by
 checking `prop_lex`:
