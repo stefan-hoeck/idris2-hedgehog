@@ -140,7 +140,7 @@ IsInUnit : Double -> Bool
 IsInUnit d = 0.0 < d && d < 1.0
 
 public export
-InUnit : Type
+0 InUnit : Type
 InUnit = Subset Double (\x => IsInUnit x = True)
 
 export

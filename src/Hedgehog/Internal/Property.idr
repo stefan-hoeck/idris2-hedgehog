@@ -71,34 +71,34 @@ Monoid (Tagged tag Nat) where neutral = 0
 |||
 ||| Can be constructed using numeric literals.
 public export
-CoverCount : Type
+0 CoverCount : Type
 CoverCount = Tagged CoverCountTag Nat
 
 ||| The name of a group of properties.
 public export
-GroupName : Type
+0 GroupName : Type
 GroupName = Tagged GroupNameTag String
 
 ||| The number of properties in a group.
 public export
-PropertyCount : Type
+0 PropertyCount : Type
 PropertyCount = Tagged PropertyCountTag Nat
 
 ||| The numbers of times a property was able to shrink after a failing test.
 public export
-ShrinkCount : Type
+0 ShrinkCount : Type
 ShrinkCount = Tagged ShrinkCountTag Nat
 
 ||| The number of shrinks to try before giving up on shrinking.
 |||
 ||| Can be constructed using numeric literals:
 public export
-ShrinkLimit : Type
+0 ShrinkLimit : Type
 ShrinkLimit = Tagged ShrinkLimitTag Nat
 
 ||| The number of tests a property ran successfully.
 public export
-TestCount : Type
+0 TestCount : Type
 TestCount = Tagged TestCountTag Nat
 
 ||| The number of successful tests that need to be run before a property test
@@ -106,12 +106,12 @@ TestCount = Tagged TestCountTag Nat
 |||
 ||| Can be constructed using numeric literals.
 public export
-TestLimit : Type
+0 TestLimit : Type
 TestLimit = Tagged TestLimitTag Nat
 
 ||| The name of a property.
 public export
-PropertyName : Type
+0 PropertyName : Type
 PropertyName = Tagged PropertyNameTag String
 
 ||| The acceptable occurrence of false positives
@@ -143,12 +143,12 @@ namespace Confidence
 
 ||| The relative number of tests which are covered by a classifier.
 public export
-CoverPercentage : Type
+0 CoverPercentage : Type
 CoverPercentage = Tagged CoverPercentageTag Double
 
 ||| The name of a classifier.
 public export
-LabelName : Type
+0 LabelName : Type
 LabelName = Tagged LabelNameTag String
 
 --------------------------------------------------------------------------------
@@ -336,11 +336,11 @@ defaultConfig =
 
 ||| A test monad transformer allows the assertion of expectations.
 public export
-TestT : (Type -> Type) -> Type -> Type
+0 TestT : (Type -> Type) -> Type -> Type
 TestT m = EitherT Failure (WriterT Journal m)
 
 public export
-Test : Type -> Type
+0 Test : Type -> Type
 Test = TestT Identity
 
 export
@@ -486,7 +486,7 @@ evalMaybe (Just x) = pure x
 ||| The property monad allows both the generation of test inputs
 |||  and the assertion of expectations.
 public export
-PropertyT : Type -> Type
+0 PropertyT : Type -> Type
 PropertyT = TestT Gen
 
 ||| Generates a random input for the test by running the provided generator.
