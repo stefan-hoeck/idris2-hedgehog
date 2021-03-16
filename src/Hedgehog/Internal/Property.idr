@@ -522,51 +522,52 @@ record Property where
   config : PropertyConfig
   test   : PropertyT ()
 
-||| Map a config modification function over a property.
-export
-mapConfig : (PropertyConfig -> PropertyConfig) -> Property -> Property
-mapConfig f p = record { config $= f } p
+namespace Property
+  ||| Map a config modification function over a property.
+  export
+  mapConfig : (PropertyConfig -> PropertyConfig) -> Property -> Property
+  mapConfig f p = record { config $= f } p
 
-verifiedTermination : Property -> Property
-verifiedTermination =
-  mapConfig \config =>
-    let
-      newTerminationCriteria = case config.terminationCriteria of
-        NoEarlyTermination c tests    => EarlyTermination c tests
-        NoConfidenceTermination tests => EarlyTermination defaultConfidence tests
-        EarlyTermination c tests      => EarlyTermination c tests
-    in
-      record { terminationCriteria = newTerminationCriteria } config
+  verifiedTermination : Property -> Property
+  verifiedTermination =
+    mapConfig \config =>
+      let
+        newTerminationCriteria = case config.terminationCriteria of
+          NoEarlyTermination c tests    => EarlyTermination c tests
+          NoConfidenceTermination tests => EarlyTermination defaultConfidence tests
+          EarlyTermination c tests      => EarlyTermination c tests
+      in
+        record { terminationCriteria = newTerminationCriteria } config
 
-||| Set the number of times a property should be executed before it is considered
-||| successful.
-|||
-||| If you have a test that does not involve any generators and thus does not
-||| need to run repeatedly, you can use @withTests 1@ to define a property that
-||| will only be checked once.
-export
-withTests : TestLimit -> Property -> Property
-withTests n = mapConfig (record {terminationCriteria $= setLimit})
-  where setLimit : TerminationCriteria -> TerminationCriteria
-        setLimit (NoEarlyTermination c _)    = NoEarlyTermination c n
-        setLimit (NoConfidenceTermination _) = NoConfidenceTermination n
-        setLimit (EarlyTermination c _)      = EarlyTermination c n
+  ||| Set the number of times a property should be executed before it is considered
+  ||| successful.
+  |||
+  ||| If you have a test that does not involve any generators and thus does not
+  ||| need to run repeatedly, you can use @withTests 1@ to define a property that
+  ||| will only be checked once.
+  export
+  withTests : TestLimit -> Property -> Property
+  withTests n = mapConfig (record {terminationCriteria $= setLimit})
+    where setLimit : TerminationCriteria -> TerminationCriteria
+          setLimit (NoEarlyTermination c _)    = NoEarlyTermination c n
+          setLimit (NoConfidenceTermination _) = NoConfidenceTermination n
+          setLimit (EarlyTermination c _)      = EarlyTermination c n
 
-||| Set the number of times a property is allowed to shrink before the test
-||| runner gives up and prints the counterexample.
-export
-withShrinks : ShrinkLimit -> Property -> Property
-withShrinks n = mapConfig $ record { shrinkLimit = n }
+  ||| Set the number of times a property is allowed to shrink before the test
+  ||| runner gives up and prints the counterexample.
+  export
+  withShrinks : ShrinkLimit -> Property -> Property
+  withShrinks n = mapConfig $ record { shrinkLimit = n }
 
-||| Make sure that the result is statistically significant in accordance to
-||| the passed 'Confidence'
-export
-withConfidence : Confidence -> Property -> Property
-withConfidence c = mapConfig $ record { terminationCriteria $= setConfidence }
-  where setConfidence : TerminationCriteria -> TerminationCriteria
-        setConfidence (NoEarlyTermination _ n)    = NoEarlyTermination c n
-        setConfidence (NoConfidenceTermination n) = NoConfidenceTermination n
-        setConfidence (EarlyTermination _ n)      = EarlyTermination c n
+  ||| Make sure that the result is statistically significant in accordance to
+  ||| the passed 'Confidence'
+  export
+  withConfidence : Confidence -> Property -> Property
+  withConfidence c = mapConfig $ record { terminationCriteria $= setConfidence }
+    where setConfidence : TerminationCriteria -> TerminationCriteria
+          setConfidence (NoEarlyTermination _ n)    = NoEarlyTermination c n
+          setConfidence (NoConfidenceTermination n) = NoConfidenceTermination n
+          setConfidence (EarlyTermination _ n)      = EarlyTermination c n
 
 ||| Creates a property with the default configuration.
 export
@@ -579,6 +580,37 @@ record Group where
   constructor MkGroup
   name       : GroupName
   properties : List (PropertyName, Property)
+
+namespace Group
+  export
+  mapProperty : (Property -> Property) -> Group -> Group
+  mapProperty f = record { properties $= map (mapSnd f) }
+
+  ||| Map a config modification function over all
+  ||| properties in a `Group`.
+  export
+  mapConfig : (PropertyConfig -> PropertyConfig) -> Group -> Group
+  mapConfig = mapProperty . mapConfig
+
+  ||| Set the number of times the properties in a `Group`
+  ||| should be executed before they are considered
+  ||| successful.
+  export
+  withTests : TestLimit -> Group -> Group
+  withTests = mapProperty . withTests
+
+  ||| Set the number of times the properties in a `Group`
+  ||| are allowed to shrink before the test
+  ||| runner gives up and prints the counterexample.
+  export
+  withShrinks : ShrinkLimit -> Group -> Group
+  withShrinks = mapProperty . withShrinks
+
+  ||| Make sure that the results of a `Group` are statistically
+  ||| significant in accordance to the passed 'Confidence'
+  export
+  withConfidence : Confidence -> Group -> Group
+  withConfidence = mapProperty . withConfidence
 
 --------------------------------------------------------------------------------
 --          Coverage
