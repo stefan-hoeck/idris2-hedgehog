@@ -226,8 +226,8 @@ Semigroup a => Semigroup (Label a) where
 
 ||| Log messages which are recorded during a test run.
 public export
-data Log = Annotation String
-         | Footnote String
+data Log = Annotation (Lazy String)
+         | Footnote (Lazy String)
          | LogLabel (Label Cover)
 
 %runElab derive "Log" [Generic,Meta,Show,Eq]
