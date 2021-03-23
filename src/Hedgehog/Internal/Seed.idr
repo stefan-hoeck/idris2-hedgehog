@@ -138,6 +138,7 @@ smGen : Bits64 -> Seed
 smGen s = MkSeed (mix64 s) (mixGamma (s + goldenGamma))
 
 %foreign "scheme:blodwen-random"
+         "javascript:lambda:x=>BigInt(Math.floor(Math.random() * Number(x)))"
 prim__random_Bits64 : Bits64 -> PrimIO Bits64
 
 ||| Initialize 'SMGen' using entropy available on the system (time, ...)

@@ -11,7 +11,6 @@ record Terminal where
   tmp      : IORef (List String)
   out      : String -> IO ()
   err      : String -> IO ()
-  flushErr : IO ()
 
 putStrErr : HasIO io => String -> io ()
 putStrErr s = fPutStr stderr s $> ()
@@ -19,7 +18,7 @@ putStrErr s = fPutStr stderr s $> ()
 export
 console : HasIO io => io Terminal
 console = do ref <- newIORef []
-             pure $ MkTerminal ref putStr putStrErr (fflush stderr)
+             pure $ MkTerminal ref putStr putStrErr
 
 clearTmp : Terminal -> IO ()
 clearTmp t = do ls <- readIORef t.tmp
@@ -33,10 +32,8 @@ putTmp t str =
    in liftIO $ do clearTmp t
                   writeIORef t.tmp ls
                   t.err (str <+> "\n")
-                  t.flushErr
 
 export
 putOut : HasIO io => Terminal -> String -> io ()
 putOut t str = liftIO $ do clearTmp t
-                           t.flushErr
                            t.out (str <+> "\n")
