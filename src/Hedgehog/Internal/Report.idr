@@ -258,13 +258,13 @@ ppReproduce name size seed =
   ]
 
 ppTextLines : String -> List (Doc Markup)
-ppTextLines = map pretty . lines
+ppTextLines = map pretty . forget . lines
 
 ppFailedInput : Nat -> FailedAnnotation -> Doc Markup
 ppFailedInput ix (MkFailedAnnotation val) =
   vsep [
     "forAll" <++> ppShow ix <++> "="
-  , indent 2 . vsep . map (markup AnnotationValue . pretty) $ lines val
+  , indent 2 . vsep . map (markup AnnotationValue . pretty) . forget $ lines val
   ]
 
 ppFailureReport :  Maybe PropertyName

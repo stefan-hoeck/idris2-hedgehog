@@ -63,9 +63,9 @@ is completely free
 
 ## Prerequisites
 
-This library uses the recently added `Data.Bits` interface
-from base and therefore must be built against Idris2
-commit 8d4321eb9a085e3d4b9c1f7a75490b0782343acd or later.
+This library uses the recent `List1` cleanup
+and therefore must be built against Idris2
+commit da92f9d67698eac00d33174de2b5c7d93dcaf561 or later.
 
 In addition, the following external dependencies are
 required:

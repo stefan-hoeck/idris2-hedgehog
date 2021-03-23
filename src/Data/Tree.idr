@@ -1,6 +1,7 @@
 module Data.Tree
 
 import Data.List
+import Data.List1
 import Data.String
 
 %default total
@@ -148,7 +149,7 @@ drawTree  = unlines . draw
     drawForest  = unlines . map drawTree
 
     draw : Tree String -> List String
-    draw (MkTree x ts0) = lines x ++ subTrees ts0
+    draw (MkTree x ts0) = (forget $ lines x) ++ subTrees ts0
       where
         shift : String -> String -> List String -> List String
         shift first other tails =
