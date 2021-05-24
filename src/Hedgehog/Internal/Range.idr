@@ -4,6 +4,7 @@ import Data.Bounded
 import Data.Maybe
 import Data.Fin
 import Decidable.Equality
+import Experimental.Prelude
 
 import Hedgehog.Internal.Util
 

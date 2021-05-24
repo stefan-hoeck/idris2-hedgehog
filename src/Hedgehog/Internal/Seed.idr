@@ -1,62 +1,16 @@
 module Hedgehog.Internal.Seed
 
 import Data.Bounded
-import Data.Bits
 import Data.DPair
 import Data.Fin
+import Experimental.Data.Bits
+import Experimental.Prelude
 
 import Generics.Derive
 
 %default total
 
 %language ElabReflection
-
---------------------------------------------------------------------------------
---          Temporary Orphans
---------------------------------------------------------------------------------
-
-public export %inline
-Bits Bits64 where
-  Index       = Subset Nat (`LT` 64)
-  (.&.)       = prim__and_Bits64
-  (.|.)       = prim__or_Bits64
-  xor         = prim__xor_Bits64
-  bit         = (1 `shiftL`)
-  zeroBits    = 0
-  testBit x i = (x .&. bit i) /= 0
-  shiftR x    = prim__shr_Bits64 x . fromInteger . cast . fst
-  shiftL x    = prim__shl_Bits64 x . fromInteger . cast . fst
-  complement  = xor 0xffffffffffffffff
-  oneBits     = 0xffffffffffffffff
-
-public export %inline
-FiniteBits Bits64 where
-  bitSize     = 64
-  bitsToIndex = id
-
-  popCount x0 =
-    -- see https://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-64-bit-integer
-    let x1 = (x0 .&. 0x5555555555555555) +
-             ((x0 `shiftR` fromNat 1) .&. 0x5555555555555555)
-        x2 = (x1 .&. 0x3333333333333333)
-             + ((x1 `shiftR` fromNat 2) .&. 0x3333333333333333)
-        x3 = ((x2 + (x2 `shiftR` fromNat 4)) .&. 0x0F0F0F0F)
-        x4 = (x3 * 0x0101010101010101) `shiftR` fromNat 56
-     in fromInteger $ cast x4
-
-public export %inline
-Bits Integer where
-  Index       = Nat
-  (.&.)       = prim__and_Integer
-  (.|.)       = prim__or_Integer
-  xor         = prim__xor_Integer
-  bit         = (1 `shiftL`)
-  zeroBits    = 0
-  testBit x i = (x .&. bit i) /= 0
-  shiftR x    = prim__shr_Integer x . cast
-  shiftL x    = prim__shl_Integer x . cast
-  complement  = xor (-1)
-  oneBits     = (-1)
 
 --------------------------------------------------------------------------------
 --          Implementation Utilities

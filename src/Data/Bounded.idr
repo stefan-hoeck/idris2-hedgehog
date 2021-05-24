@@ -1,5 +1,7 @@
 module Data.Bounded
 
+import Experimental.Prelude
+
 %default total
 
 public export
@@ -45,9 +47,41 @@ MaxBound Bits64 where
   maxBound = 0xffffffffffffffff
 
 public export %inline
+MinBound Int8 where
+  minBound = (- 0x80)
+
+public export %inline
+MaxBound Int8 where
+  maxBound = 0x7f
+
+public export %inline
+MinBound Int16 where
+  minBound = (- 0x8000)
+
+public export %inline
+MaxBound Int16 where
+  maxBound = 0x7fff
+
+public export %inline
+MinBound Int32 where
+  minBound = (- 0x80000000)
+
+public export %inline
+MaxBound Int32 where
+  maxBound = 0x7fffffff
+
+public export %inline
+MinBound Int64 where
+  minBound = (- 0x8000000000000000)
+
+public export %inline
+MaxBound Int64 where
+  maxBound = 0x7fffffffffffffff
+
+public export %inline
 MinBound Int where
-  minBound = (- 0xffffffffffffffff)
+  minBound = (- 0x8000000000000000)
 
 public export %inline
 MaxBound Int where
-  maxBound = 0xffffffffffffffff
+  maxBound = 0x7fffffffffffffff

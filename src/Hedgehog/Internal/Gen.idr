@@ -11,6 +11,8 @@ import Data.String
 import Data.Tree
 import Data.Vect
 
+import Experimental.Prelude
+
 import Control.Monad.Maybe
 
 import Hedgehog.Internal.Range
@@ -183,6 +185,34 @@ integral range = shrink (towards $ origin range) (integral_ range)
 public export %inline
 int : Range Int -> Gen Int
 int = integral
+
+||| Generates a random 8-bit integer in the given range.
+|||
+||| This is a specialization of `integral`, offered for convenience.
+public export %inline
+int8 : Range Int8 -> Gen Int8
+int8 = integral
+
+||| Generates a random 16-bit integer in the given range.
+|||
+||| This is a specialization of `integral`, offered for convenience.
+public export %inline
+int16 : Range Int16 -> Gen Int16
+int16 = integral
+
+||| Generates a random 32-bit integer in the given range.
+|||
+||| This is a specialization of `integral`, offered for convenience.
+public export %inline
+int32 : Range Int32 -> Gen Int32
+int32 = integral
+
+||| Generates a random 64-bit integer in the given range.
+|||
+||| This is a specialization of `integral`, offered for convenience.
+public export %inline
+int64 : Range Int64 -> Gen Int64
+int64 = integral
 
 ||| Generates a random 8-bit integer in the given range.
 |||

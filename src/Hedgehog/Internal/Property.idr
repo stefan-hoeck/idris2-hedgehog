@@ -7,6 +7,7 @@ import Control.Monad.Writer
 import Data.DPair
 import Data.Lazy
 import Data.SortedMap
+import Experimental.Prelude
 import Generics.Derive
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Util

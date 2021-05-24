@@ -3,6 +3,7 @@ module Hedgehog.Internal.Shrink
 import Data.Colist
 import Data.Cotree
 import Data.Nat
+import Experimental.Prelude
 
 import Hedgehog.Internal.Util
 

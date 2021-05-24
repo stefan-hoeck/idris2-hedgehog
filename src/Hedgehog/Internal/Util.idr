@@ -3,6 +3,7 @@ module Hedgehog.Internal.Util
 import Data.DPair
 import Data.List
 import Data.Colist
+import Experimental.Prelude
 
 %default total
 --------------------------------------------------------------------------------
@@ -48,6 +49,18 @@ interface Num a => ToInteger a where
 
 public export
 ToInteger Integer where toInteger = id
+
+public export
+ToInteger Int8 where toInteger = cast
+
+public export
+ToInteger Int16 where toInteger = cast
+
+public export
+ToInteger Int32 where toInteger = cast
+
+public export
+ToInteger Int64 where toInteger = cast
 
 public export
 ToInteger Int where toInteger = cast
