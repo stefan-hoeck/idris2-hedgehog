@@ -70,6 +70,7 @@ commit da92f9d67698eac00d33174de2b5c7d93dcaf561 or later.
 In addition, the following external dependencies are
 required:
 
+  * [experimental](https://github.com/stefan-hoeck/idris2-experimental)
   * [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
   * [sop](https://github.com/stefan-hoeck/idris2-sop)
   * [pretty-show](https://github.com/stefan-hoeck/idris2-pretty-show)
