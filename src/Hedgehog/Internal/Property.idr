@@ -540,6 +540,16 @@ namespace Property
       in
         record { terminationCriteria = newTerminationCriteria } config
 
+  ||| Adjust the number of times a property should be executed before it is considered
+  ||| successful.
+  export
+  mapTests : (TestLimit -> TestLimit) -> Property -> Property
+  mapTests f = mapConfig (record {terminationCriteria $= setLimit})
+    where setLimit : TerminationCriteria -> TerminationCriteria
+          setLimit (NoEarlyTermination c n)    = NoEarlyTermination c (f n)
+          setLimit (NoConfidenceTermination n) = NoConfidenceTermination (f n)
+          setLimit (EarlyTermination c n)      = EarlyTermination c (f n)
+
   ||| Set the number of times a property should be executed before it is considered
   ||| successful.
   |||
@@ -548,11 +558,7 @@ namespace Property
   ||| will only be checked once.
   export
   withTests : TestLimit -> Property -> Property
-  withTests n = mapConfig (record {terminationCriteria $= setLimit})
-    where setLimit : TerminationCriteria -> TerminationCriteria
-          setLimit (NoEarlyTermination c _)    = NoEarlyTermination c n
-          setLimit (NoConfidenceTermination _) = NoConfidenceTermination n
-          setLimit (EarlyTermination c _)      = EarlyTermination c n
+  withTests = mapTests . const
 
   ||| Set the number of times a property is allowed to shrink before the test
   ||| runner gives up and prints the counterexample.

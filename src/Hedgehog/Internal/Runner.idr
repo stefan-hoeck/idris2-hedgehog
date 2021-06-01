@@ -6,11 +6,13 @@ import Data.IORef
 import Data.List
 import Hedgehog.Internal.Config
 import Hedgehog.Internal.Gen
+import Hedgehog.Internal.Options
 import Hedgehog.Internal.Property
 import Hedgehog.Internal.Range
 import Hedgehog.Internal.Report
 import Hedgehog.Internal.Seed
 import Hedgehog.Internal.Terminal
+import System
 
 %default total
 
@@ -194,3 +196,43 @@ checkGroup (MkGroup group props) =
      summary <- liftIO $ checkGroupWith term color props
      putOut term (renderSummary color summary)
      pure $ summary.failed == 0
+
+||| Simple test runner.
+|||
+||| Use this in a `main` function in order to test a list of
+||| property groups. The runner will take into account several
+||| command line arguments in order to adjust the number of
+||| tests to be run for each property, the maximal number of
+||| shrinks and the confidence value to use.
+|||
+||| ```idris example
+||| main : IO ()
+||| main = test myGroups
+||| ```
+|||
+||| The resulting executable can then be run as follows:
+|||
+||| ```sh
+||| build/exec/runTests -n 1000
+||| ```
+|||
+||| It will fail with an exit code of 1 if at least one property
+||| fails.
+export
+test : HasIO io => List Group -> io ()
+test gs = do
+  args    <- getArgs
+  Right c <- pure $ applyArgs args
+    | Left errs => do
+        putStrLn "Errors when parsing command line args:"
+        traverse_ putStrLn errs
+        exitFailure
+  if c.printHelp
+     then putStrLn info >> exitSuccess
+     else
+       let gs2 = map (applyConfig c) gs
+        in do
+             res <- foldlM (\b,g => map (b &&) (checkGroup g)) True gs2
+             if res
+                then exitSuccess
+                else putStrLn "\n\nSome tests failed" >> exitFailure

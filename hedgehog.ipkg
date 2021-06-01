@@ -18,6 +18,7 @@ modules = Data.Bounded
         , Hedgehog.Internal.Config
         , Hedgehog.Internal.Gen
         , Hedgehog.Internal.Property
+        , Hedgehog.Internal.Options
         , Hedgehog.Internal.Range
         , Hedgehog.Internal.Report
         , Hedgehog.Internal.Runner
