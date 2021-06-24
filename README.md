@@ -63,9 +63,8 @@ is completely free
 
 ## Prerequisites
 
-This library uses the recent `List1` cleanup
-and therefore must be built against Idris2
-commit da92f9d67698eac00d33174de2b5c7d93dcaf561 or later.
+The latest release requires Idri2 version 0.4.0.
+The latest commit has been built against Idris 2, version 0.4.0-ea1ad1688.
 
 In addition, the following external dependencies are
 required:
