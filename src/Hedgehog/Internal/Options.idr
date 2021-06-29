@@ -2,7 +2,6 @@ module Hedgehog.Internal.Options
 
 import Data.String
 import Decidable.Equality
-import Experimental.Prelude
 import Hedgehog.Internal.Property
 import System.Console.GetOpt
 

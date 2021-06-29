@@ -1,6 +1,5 @@
 module Hedgehog.Internal.Config
 
-import Experimental.Prelude
 import Generics.Derive
 import System
 

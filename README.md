@@ -64,12 +64,11 @@ is completely free
 ## Prerequisites
 
 The latest release requires Idri2 version 0.4.0.
-The latest commit has been built against Idris 2, version 0.4.0-ea1ad1688.
+The latest commit has been built against Idris 2, version 0.4.0-6f9b926b1.
 
 In addition, the following external dependencies are
 required:
 
-  * [experimental](https://github.com/stefan-hoeck/idris2-experimental)
   * [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
   * [sop](https://github.com/stefan-hoeck/idris2-sop)
   * [pretty-show](https://github.com/stefan-hoeck/idris2-pretty-show)

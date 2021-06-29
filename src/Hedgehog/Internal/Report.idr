@@ -3,7 +3,6 @@ module Hedgehog.Internal.Report
 import Data.List1
 import Data.Nat
 import Data.SortedMap
-import Experimental.Prelude
 import Generics.Derive
 import Hedgehog.Internal.Config
 import Hedgehog.Internal.Property

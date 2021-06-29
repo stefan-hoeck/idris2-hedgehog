@@ -11,8 +11,6 @@ import Data.String
 import Data.Tree
 import Data.Vect
 
-import Experimental.Prelude
-
 import Control.Monad.Maybe
 
 import Hedgehog.Internal.Range

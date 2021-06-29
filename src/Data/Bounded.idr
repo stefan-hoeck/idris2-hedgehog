@@ -1,7 +1,5 @@
 module Data.Bounded
 
-import Experimental.Prelude
-
 %default total
 
 public export

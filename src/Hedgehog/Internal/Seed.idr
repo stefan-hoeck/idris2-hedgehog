@@ -1,10 +1,9 @@
 module Hedgehog.Internal.Seed
 
 import Data.Bounded
+import Data.Bits
 import Data.DPair
 import Data.Fin
-import Experimental.Data.Bits
-import Experimental.Prelude
 
 import Generics.Derive
 

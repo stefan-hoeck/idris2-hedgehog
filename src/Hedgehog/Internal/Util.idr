@@ -3,7 +3,6 @@ module Hedgehog.Internal.Util
 import Data.DPair
 import Data.List
 import Data.Colist
-import Experimental.Prelude
 
 %default total
 --------------------------------------------------------------------------------
