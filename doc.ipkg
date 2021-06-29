@@ -6,7 +6,6 @@ sourcedir  = "src"
 depends    = base         >= 0.4.0
            , contrib      >= 0.4.0
            , elab-util    >= 0.3.0
-           , experimental >= 0.2.0
            , pretty-show  >= 0.3.0
            , sop          >= 0.4.0
 
