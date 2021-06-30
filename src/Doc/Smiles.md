@@ -16,7 +16,6 @@ import Data.String
 import Data.Cotree
 import Data.Vect
 import Generics.Derive
-import Experimental.Prelude
 import Text.Lexer
 
 import Hedgehog
