@@ -64,7 +64,7 @@ is completely free
 ## Prerequisites
 
 The latest release requires Idri2 version 0.4.0.
-The latest commit has been built against Idris 2, version 0.4.0-6f9b926b1.
+The latest commit has been built against Idris 2, version 0.4.0-68db9fe0f.
 
 In addition, the following external dependencies are
 required:

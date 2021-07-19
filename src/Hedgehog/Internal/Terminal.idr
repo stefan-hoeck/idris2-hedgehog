@@ -29,7 +29,7 @@ clearTmp t = do ls <- readIORef t.tmp
 export
 putTmp : HasIO io => Terminal -> String -> io ()
 putTmp t str =
-  let ls = forget $ lines str
+  let ls = lines str
    in liftIO $ do clearTmp t
                   writeIORef t.tmp ls
                   t.err (str <+> "\n")
