@@ -38,18 +38,18 @@ runGen si se g = unGen g si se
 
 public export %inline
 mapGen :  (f : Cotree a -> Cotree b) -> Gen a -> Gen b
-mapGen f (MkGen run) = MkGen \si,se => f (run si se)
+mapGen f (MkGen run) = MkGen $ \si,se => f (run si se)
 
 ||| Lift a predefined shrink tree in to a generator, ignoring the seed and the
 ||| size.
 public export %inline
 fromTree : Cotree a -> Gen a
-fromTree ct = MkGen \_,_ => ct
+fromTree ct = MkGen $ \_,_ => ct
 
 ||| Observe a generator's shrink tree.
 public export %inline
 toTree : Gen a -> Gen (Cotree a)
-toTree (MkGen unGen) = MkGen \si,se => pure (unGen si se)
+toTree (MkGen unGen) = MkGen $ \si,se => pure (unGen si se)
 
 --------------------------------------------------------------------------------
 --          Interface Implementations
@@ -57,22 +57,22 @@ toTree (MkGen unGen) = MkGen \si,se => pure (unGen si se)
 
 public export
 Functor Gen where
-  map f (MkGen g) = MkGen \si,se => map f (g si se)
+  map f (MkGen g) = MkGen $ \si,se => map f (g si se)
 
 public export
 Applicative Gen where
-  pure a = MkGen \_,_ => pure a
+  pure a = MkGen $ \_,_ => pure a
 
   MkGen ff <*> MkGen fa =
-    MkGen \si,se => let (se1,se2) = split se
+    MkGen $ \si,se => let (se1,se2) = split se
                      in interleave (ff si se1) (fa si se2)
 
 public export
 Monad Gen where
   MkGen run >>= f =
-    MkGen \si,se => let (se1,se2) = split se
-                        ta        = run si se1
-                     in bind ta (runGen si se2 . f)
+    MkGen $ \si,se => let (se1,se2) = split se
+                          ta        = run si se1
+                       in bind ta (runGen si se2 . f)
 
 --------------------------------------------------------------------------------
 --          Combinators
@@ -80,7 +80,7 @@ Monad Gen where
 
 public export %inline
 generate : (Size -> Seed -> a) -> Gen a
-generate  f = MkGen \si,se => pure (f si se)
+generate  f = MkGen $ \si,se => pure (f si se)
 
 --------------------------------------------------------------------------------
 --          Shrinking
@@ -106,7 +106,7 @@ sized f = generate (\si,_ => si) >>= f
 ||| Adjust the size parameter by transforming it with the given function.
 public export %inline
 scale : (Size -> Size) -> Gen a -> Gen a
-scale f (MkGen run) = MkGen \si,se => run (f si) se
+scale f (MkGen run) = MkGen $ \si,se => run (f si) se
 
 ||| Override the size parameter. Returns a generator which uses the given size
 ||| instead of the runtime-size parameter.
@@ -120,7 +120,7 @@ resize size = scale (const size)
 |||   > golden x = x / 1.61803..
 public export %inline
 golden : Size -> Size
-golden = resize \n => round (0.61803398875 * cast n)
+golden = resize $ \n => round (0.61803398875 * cast n)
 
 ||| Make a generator smaller by scaling its size parameter.
 public export %inline
@@ -136,7 +136,7 @@ small = scale golden
 ||| This generator does not shrink.
 public export
 integral_ : ToInteger a => Range a -> Gen a
-integral_ range = generate \si,se =>
+integral_ range = generate $ \si,se =>
     let (x, y) = bounds si range
      in fromInteger . fst $ nextIntegerR (toInteger x, toInteger y) se
 
@@ -278,8 +278,8 @@ fin range = let rangeInt = map finToInteger range
 ||| This generator does not shrink.
 export %inline
 double_ : Range Double -> Gen Double
-double_ range = generate \si,se => let (x, y) = bounds si range
-                                    in fst $ nextDoubleR x y se
+double_ range = generate $ \si,se => let (x, y) = bounds si range
+                                      in fst $ nextDoubleR x y se
 
 ||| Generates a random floating-point number in the given range.
 |||
@@ -450,18 +450,18 @@ unicodeAll = charc '\0' '\1114111'
 ||| Generates a 'Nothing' some of the time.
 export %inline
 maybe : Gen a -> Gen (Maybe a)
-maybe gen = sized \s => frequency [ (2, constant Nothing)
-                                  , (S s.size, Just <$> gen)
-                                  ]
+maybe gen = sized $ \s => frequency [ (2, constant Nothing)
+                                    , (S s.size, Just <$> gen)
+                                    ]
 
 ||| Generates either an 'a' or a 'b'.
 |||
 ||| As the size grows, this generator generates @Right@s more often than @Left@s.
 export %inline
 either : Gen a -> Gen b -> Gen (Either a b)
-either genA genB = sized \s => frequency [ (2, Left <$> genA)
-                                         , (S s.size, Right <$> genB)
-                                         ]
+either genA genB = sized $ \s => frequency [ (2, Left <$> genA)
+                                           , (S s.size, Right <$> genB)
+                                           ]
 ||| Generates either an 'a' or a 'b', without bias.
 |||
 ||| This generator generates as many @Right@s as it does @Left@s.
@@ -479,9 +479,9 @@ vect (S k) g = [| g :: vect k g |]
 export %inline
 list : Range Nat -> Gen a -> Gen (List a)
 list range gen =
-  sized \si => let minLength = lowerBound si range
-                in  mapGen (interleave minLength . value)
-                  $ integral_ range >>= \n => map toList (vect n (toTree gen))
+  sized $ \si => let minLength = lowerBound si range
+                  in  mapGen (interleave minLength . value)
+                    $ integral_ range >>= (\n => map toList (vect n (toTree gen)))
 ||| Generates a non-empty list using a `Range` to determine the length.
 export %inline
 list1 : Range Nat -> Gen a -> Gen (List1 a)

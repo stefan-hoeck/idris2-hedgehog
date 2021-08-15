@@ -130,7 +130,7 @@ checkTerm :  HasIO io
           -> Property
           -> io (Report Result)
 checkTerm term color name si se prop =
-  do result <- checkReport {m = io} prop.config si se prop.test \prog =>
+  do result <- checkReport {m = io} prop.config si se prop.test $ \prog =>
                if multOf100 prog.tests
                   then let ppprog = renderProgress color name prog
                         in case prog.status of

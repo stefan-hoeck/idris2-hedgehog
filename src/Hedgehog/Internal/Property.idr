@@ -378,7 +378,7 @@ annotate v = writeLog $ Annotation v
 
 ||| Annotates the source code with a value that might be useful for
 ||| debugging a test failure.
-export
+export covering
 annotateShow : (Applicative m, Show a) => a -> TestT m ()
 annotateShow v = annotate $ ppShow v
 
@@ -390,12 +390,12 @@ footnote v = writeLog $ Footnote v
 
 ||| Logs a value to be displayed as additional information in the footer of
 ||| the failure report.
-export
+export covering
 footnoteShow : (Applicative m, Show a) => a -> TestT m ()
 footnoteShow v = writeLog (Footnote $ ppShow v)
 
 ||| Fails with an error that shows the difference between two values.
-export
+export covering
 failDiff : (Applicative m, Show a, Show b) => a -> b -> TestT m ()
 failDiff x y =
   case valueDiff <$> reify x <*> reify y of
@@ -467,7 +467,7 @@ export
 
 ||| Fails the test if the 'Either' is 'Left', otherwise returns the value in
 ||| the 'Right'.
-export
+export covering
 evalEither : (Monad m, Show x) => Either x a -> TestT m a
 evalEither (Left x)  = failWith Nothing (ppShow x)
 evalEither (Right x) = pure x
@@ -501,7 +501,7 @@ forAllWith render gen = do x <- lift (lift gen)
                            pure x
 
 ||| Generates a random input for the test by running the provided generator.
-export
+export covering
 forAll : Show a => Gen a -> PropertyT a
 forAll = forAllWith ppShow
 
@@ -530,7 +530,7 @@ namespace Property
 
   verifiedTermination : Property -> Property
   verifiedTermination =
-    mapConfig \config =>
+    mapConfig $ \config =>
       let
         newTerminationCriteria = case config.terminationCriteria of
           NoEarlyTermination c tests    => EarlyTermination c tests

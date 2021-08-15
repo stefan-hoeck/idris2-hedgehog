@@ -123,7 +123,7 @@ ring s = case fastUnpack s of
         calc c = ord c - 48
 
 export
-lexSmiles1 : String -> (List (TokenData Token), (Int,Int,String))
+lexSmiles1 : String -> (List (WithBounds Token), (Int,Int,String))
 lexSmiles1 = lex [ (lower <|> (upper <+> opt lower), organic)
                  , (oneOf "-=#", bond)
                  , (digit <|> (is '%' <+> digit <+> digit), ring)
@@ -178,7 +178,7 @@ prop_lex1 = property $ do ts <- forAll tokens
                               enc = concatMap encode ts
 
                               lexed : List Token
-                              lexed = map tok . fst $ lexSmiles1 enc
+                              lexed = map val . fst $ lexSmiles1 enc
 
                           footnote $ "Encoded: " ++ enc
                           lexed === ts
@@ -220,7 +220,7 @@ The following version fixes this issue, as can be shown by
 checking `prop_lex`:
 
 ```idris
-lexSmiles : String -> (List (TokenData Token), (Int,Int,String))
+lexSmiles : String -> (List (WithBounds Token), (Int,Int,String))
 lexSmiles = lex [ (exact "Cl" <|> exact "Br" <|> alpha, organic)
                 , (oneOf "-=#", bond)
                 , (digit <|> (is '%' <+> digit <+> digit), ring)
@@ -235,7 +235,7 @@ prop_lex = property $ do ts <- forAll tokens
                              enc = concatMap encode ts
 
                              lexed : List Token
-                             lexed = map tok . fst $ lexSmiles enc
+                             lexed = map val . fst $ lexSmiles enc
 
                          footnote $ "Encoded: " ++ enc
                          lexed === ts

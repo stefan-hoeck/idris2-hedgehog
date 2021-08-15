@@ -88,7 +88,7 @@ applyConfig (MkConfig _ nt ns c) =
   where
     adjPropTests : NumTest -> Property -> Property
     adjPropTests (Forced x)  = withTests x
-    adjPropTests (Relaxed x) = mapTests \n => if n > 1 then x else n
+    adjPropTests (Relaxed x) = mapTests $ \n => if n > 1 then x else n
 
     adjTests : NumTest -> Group -> Group
     adjTests = mapProperty . adjPropTests

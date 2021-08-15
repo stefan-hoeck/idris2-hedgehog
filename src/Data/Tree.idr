@@ -119,7 +119,7 @@ bindTree (MkTree va tas) f =
         bindF (x :: xs) = bindTree x f :: bindF xs
 
 apTree : Tree (a -> b) -> Tree a -> Tree b
-apTree tf ta = bindTree tf \f => mapTree (apply f) ta
+apTree tf ta = bindTree tf $ \f => mapTree (apply f) ta
 
 joinTree : Tree (Tree a) -> Tree a
 joinTree (MkTree (MkTree va tas) ftas) =

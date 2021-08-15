@@ -114,7 +114,7 @@ upperBound sz = uncurry max . bounds sz
 export
 Functor Range where
   map f (MkRange origin bounds') =
-    MkRange (f origin)
+    MkRange (f origin) $
             \si => let (x,y) = bounds' si
                     in (f x, f y)
 
@@ -131,7 +131,7 @@ Functor Range where
 ||| 5
 export
 singleton : a -> Range a
-singleton x = MkRange x \_ => (x, x)
+singleton x = MkRange x $ \_ => (x, x)
 
 ||| Construct a range which is unaffected by the size parameter with a origin
 ||| point which may differ from the bounds.
@@ -153,7 +153,7 @@ singleton x = MkRange x \_ => (x, x)
 ||| 2000
 export
 constantFrom : (origin,lower,upper : a) -> Range a
-constantFrom o l u = MkRange o \_ => (l, u)
+constantFrom o l u = MkRange o $ \_ => (l, u)
 
 ||| Construct a range which is unaffected by the size parameter.
 |||
@@ -221,9 +221,9 @@ scaled :  Ord a
        => (scale : Size -> (origin,bound : a) -> a)
        -> (origin,lower,upper : a)
        -> Range a
-scaled f o l u = MkRange o \sz => let x_sized = clamp l u $ f sz o l
-                                      y_sized = clamp l u $ f sz o u
-                                   in (x_sized, y_sized)
+scaled f o l u = MkRange o $ \sz => let x_sized = clamp l u $ f sz o l
+                                        y_sized = clamp l u $ f sz o u
+                                     in (x_sized, y_sized)
 
 ||| Construct a range which scales the bounds relative to the size parameter.
 |||
