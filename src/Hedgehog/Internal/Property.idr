@@ -444,7 +444,7 @@ assert ok = if ok then success else failure
 ||| otherwise. Like unix @diff@, if the arguments fail the comparison, a
 ||| /diff is shown.
 |||
-export
+export covering
 diff :  (Monad m, Show a, Show b)
      => a -> (a -> b -> Bool) -> b -> TestT m ()
 diff x op y = if x `op` y then success
@@ -453,14 +453,14 @@ diff x op y = if x `op` y then success
 infix 4 ===
 
 ||| Fails the test if the two arguments provided are not equal.
-export
+export covering
 (===) : (Monad m, Eq a, Show a) => a -> a -> TestT m ()
 (===) x y = diff x (==) y
 
 infix 4 /==
 
 ||| Fails the test if the two arguments provided are equal.
-export
+export covering
 (/==) : (Monad m, Eq a, Show a) => a -> a -> TestT m ()
 (/==) x y = diff x (/=) y
 
