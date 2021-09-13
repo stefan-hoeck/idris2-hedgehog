@@ -422,10 +422,22 @@ export %inline
 ascii : Gen Char
 ascii = charc '\0' '\127'
 
-||| Generates an ASCII character: `'\0'..'\255'`
+||| Generates an printable ASCII character: `'\32'..'\126'`
+||| Note: This includes the space character but no
+|||       line breaks or tabs
+export %inline
+printableAscii : Gen Char
+printableAscii = charc '\32' '\126'
+
+||| Generates a latin character: `'\0'..'\255'`
 export %inline
 latin : Gen Char
 latin = charc '\0' '\255'
+
+||| Generates a printable latin character: `'\32'..'\126'` and `'\160'..'\255'`
+export %inline
+printableLatin : Gen Char
+printableLatin = frequency [ (95, printableAscii), (96, charc '\160' '\255') ]
 
 ||| Generates a Unicode character, excluding noncharacters
 ||| and invalid standalone surrogates:
