@@ -1,0 +1,88 @@
+name: Hedgehog
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+  pull_request:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  read-ver:
+    name: Aquire compiler version
+    runs-on: ubuntu-latest
+    env:
+      IDRIS_VERSION_FILE: .idris-version
+    outputs:
+      idris-ver: ${{ steps.read-ver.outputs.idris-ver }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Read the version
+        id: read-ver
+        run: sed 's/^/::set-output name=idris-ver::/' < "${IDRIS_VERSION_FILE}"
+
+  dependencies:
+    name: Install elab-util
+    needs: read-ver
+    runs-on: ubuntu-latest
+    container: snazzybucket/idris2api:${{ needs.read-ver.outputs.idris-ver }}
+    strategy:
+      max-parallel: 1 # We need sequential run!
+      matrix:
+        include:
+          - repo: stefan-hoeck/idris2-elab-util
+            lib: elab-util
+          - repo: stefan-hoeck/idris2-sop
+            lib: sop
+          - repo: stefan-hoeck/idris2-pretty-show
+            lib: pretty-show
+    steps:
+      - name: Checkout ${{ matrix.lib }}
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ matrix.repo }}
+      - name: Download already installed dependencies
+        uses: actions/download-artifact@master
+        with:
+          name: dependencies
+          path: /root/.idris2/
+        continue-on-error: true
+      - name: Make ${{ matrix.lib }}
+        run: make lib
+      - name: Install ${{ matrix.lib }}
+        run: make install
+      - name: Save installed lib
+        uses: actions/upload-artifact@master
+        with:
+          name: dependencies
+          path: /root/.idris2/idris2-*/${{ matrix.lib }}*
+          if-no-files-found: error
+
+  build:
+    name: Build Hedgehog
+    needs:
+      - read-ver
+      - dependencies
+    runs-on: ubuntu-latest
+    container: snazzybucket/idris2api:${{ needs.read-ver.outputs.idris-ver }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download installed dependencies
+        uses: actions/download-artifact@master
+        with:
+          name: dependencies
+          path: /root/.idris2/
+      - name: Build lib
+        run: make lib
+      - name: Build docs
+        run: make docs
