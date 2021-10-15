@@ -1,4 +1,4 @@
-name: Hedgehog
+name: Build
 
 on:
   push:
@@ -9,6 +9,11 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    # We want to run right after the `latest` image is published.
+    # So, let's do it an hour right after. Look the schedule of publishing here:
+    # https://github.com/alexhumphreys/idris2-dockerfile/blob/main/.github/workflows/docker-image.yml
+    - cron: '0 1 * * *'
 
 defaults:
   run:
@@ -31,29 +36,29 @@ jobs:
         run: sed 's/^/::set-output name=idris-ver::/' < "${IDRIS_VERSION_FILE}"
 
   dependencies:
-    name: Install elab-util
+    name: Install ${{ matrix.lib }} for ${{ matrix.idris-version }}
     needs: read-ver
     runs-on: ubuntu-latest
-    container: snazzybucket/idris2api:${{ needs.read-ver.outputs.idris-ver }}
     strategy:
       max-parallel: 1 # We need sequential run!
       matrix:
-        include:
-          - repo: stefan-hoeck/idris2-elab-util
-            lib: elab-util
-          - repo: stefan-hoeck/idris2-sop
-            lib: sop
-          - repo: stefan-hoeck/idris2-pretty-show
-            lib: pretty-show
+        lib:
+          - elab-util
+          - sop
+          - pretty-show
+        idris-version:
+          - ${{ needs.read-ver.outputs.idris-ver }}
+          - latest
+    container: snazzybucket/idris2api:${{ matrix.idris-version }}
     steps:
       - name: Checkout ${{ matrix.lib }}
         uses: actions/checkout@v2
         with:
-          repository: ${{ matrix.repo }}
+          repository: stefan-hoeck/idris2-${{ matrix.lib }}
       - name: Download already installed dependencies
         uses: actions/download-artifact@master
         with:
-          name: dependencies
+          name: dependencies-for-${{ matrix.idris-version }}
           path: /root/.idris2/
         continue-on-error: true
       - name: Make ${{ matrix.lib }}
@@ -63,24 +68,30 @@ jobs:
       - name: Save installed lib
         uses: actions/upload-artifact@master
         with:
-          name: dependencies
+          name: dependencies-for-${{ matrix.idris-version }}
           path: /root/.idris2/idris2-*/${{ matrix.lib }}*
           if-no-files-found: error
 
   build:
-    name: Build Hedgehog
+    name: Build ${{ github.repository }} with ${{ matrix.idris-version }}
     needs:
       - read-ver
       - dependencies
     runs-on: ubuntu-latest
-    container: snazzybucket/idris2api:${{ needs.read-ver.outputs.idris-ver }}
+    strategy:
+      fail-fast: false
+      matrix:
+        idris-version:
+          - ${{ needs.read-ver.outputs.idris-ver }}
+          - latest
+    container: snazzybucket/idris2api:${{ matrix.idris-version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Download installed dependencies
         uses: actions/download-artifact@master
         with:
-          name: dependencies
+          name: dependencies-for-${{ matrix.idris-version }}
           path: /root/.idris2/
       - name: Build lib
         run: make lib
