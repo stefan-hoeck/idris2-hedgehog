@@ -1,4 +1,4 @@
-## An Introduction to Hedgehog
+# An Introduction to Hedgehog
 
 The Haskell library [Hedgehog](https://hedgehog.qa/) is a powerful property
 based testing framework in the spirit of
@@ -18,7 +18,7 @@ import Data.Vect
 import Hedgehog
 ```
 
-### A First Example
+## A First Example
 To give a first example of the capabilities of this library,
 we verify that reversing a list twice will lead to the original
 list. This is - of course - completely pointless in Idris, since
@@ -59,7 +59,7 @@ Running this produces the following output:
 >  ✓ <interactive> passed 100 tests.
 ```
 
-### Property Groups
+## Property Groups
 
 OK, let's try something (slightly) more realistic. Property
 based testing can be useful in Idris when we are dealing with
@@ -109,7 +109,7 @@ Running this in the REPL results in the following output:
 >   ✓ 2 succeeded.
 ```
 
-### Failing Tests and Shrinking
+## Failing Tests and Shrinking
 
 Next, we will write a property that does not hold:
 
@@ -157,7 +157,7 @@ Here, we are informed about the failed test together with a
 properly shrunk minimal test case plus the `Size` and
 `Seed` required to rerun the failing test.
 
-### The (broken) Gen Monad
+## The (broken) Gen Monad
 
 There is a (minor, in my opinion) inconsistency between
 `Gen`s `Applicative` and `Monad` implementations. This is the
@@ -224,7 +224,7 @@ counter example. The reason for this is explained in detail in
 The important message is: For optimal shrinking, combine generators using
 `Gen`s applicative implementation whenever possible.
 
-### Debugging Generators: Classifiers and Test Coverage
+## Debugging Generators: Classifiers and Test Coverage
 
 It is often useful to make sure that generators behave correctly.
 There are several facilities for this. In the most simple case, we

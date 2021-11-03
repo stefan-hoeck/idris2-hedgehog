@@ -1,4 +1,4 @@
-## Writing a SMILES Parser
+# Writing a SMILES Parser
 
 In this tutorial, we look at a real world example.
 We are going to write a (simplified) parser for SMILES strings
@@ -24,7 +24,7 @@ import Hedgehog
 %language ElabReflection
 ```
 
-### Bonds and Atoms
+## Bonds and Atoms
 
 We first need to define the necessary data types.
 To keep things simple, we only support the most common
@@ -54,7 +54,7 @@ data Elem = B | C | N | O | F | S | Cl | P | Br | I
 %runElab derive "Doc.Smiles.Elem" [Generic,Meta,Eq,Ord,Show]
 ```
 
-### Writing the Lexer
+## Writing the Lexer
 
 We use the utilities from `Text.Lexer` to cut a SMILES string into
 appropriate tokens. In addition to a data type for SMILES tokens,
@@ -132,7 +132,7 @@ lexSmiles1 = lex [ (lower <|> (upper <+> opt lower), organic)
                  ]
 ```
 
-### Testing the Lexer
+## Testing the Lexer
 
 Since the functions from `Text.Lexer` are not publicly exported,
 we cannot test the lexer at compile time. We will therefore
