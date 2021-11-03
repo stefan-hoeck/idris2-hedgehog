@@ -55,7 +55,7 @@ checkReverse = check propReverse
 
 Running this produces the following output:
 
-```
+```repl
 >  ✓ <interactive> passed 100 tests.
 ```
 
@@ -102,7 +102,7 @@ checkPack = checkGroup $
 
 Running this in the REPL results in the following output:
 
-```
+```repl
 > ━━━ Fast String Functions ━━━
 >   ✓ fastPack . fastUnpack = id passed 100 tests.
 >   ✓ unpack = fastUnpack passed 100 tests.
@@ -139,7 +139,7 @@ checkFailing1 = checkNamed "propAddInts" propAddInts
 
 Running the above results in output similar to this:
 
-```
+```repl
 > ✗ propAddInts failed after 7 tests.
 >
 >   forAll 0 =
@@ -190,7 +190,7 @@ checkIntGreater =  checkNamed "propIntGreaterApp" propIntGreaterApp
 Both tests fail, but their shrinking behavior is different.
 In the first case, we get output similar to the following:
 
-```
+```repl
 > ✗ propIntGreaterApp failed after 1 test.
 >
 >   forAll 0 =
@@ -205,7 +205,7 @@ counter example.
 
 In the second case, however, the output is most likely similar to this:
 
-```
+```repl
 > ✗ propIntGreaterMonad failed after 4 tests.
 >
 >   forAll 0 =
@@ -249,7 +249,7 @@ checkTwice = checkNamed "propTwice" propTwice
 
 Eventually, the output will look similar to the one below:
 
-```
+```repl
 > ✓ propTwice passed 10000 tests.
 >   above 100 90.1% ██████████████████··
 >   below 10   0.8% ▏···················
@@ -278,7 +278,7 @@ checkTwice2 = checkNamed "propTwice2" propTwice2
 
 The output will look similar to this:
 
-```
+```repl
 > ✓ propTwice2 passed 10000 tests.
 >   [10,100)    9.1% █▊·················· ✓  5.0%
 >   [100,1000] 89.9% █████████████████▉·· ✓ 80.0%

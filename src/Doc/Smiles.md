@@ -192,7 +192,7 @@ Running `:exec check prop_lex1` will lead to output similar
 to the following (if in a Unix shell, use `export HEDGEHOG_COLOR="1"` to
 enable nicely colorized output):
 
-```
+```repl
 > ✗ <interactive> failed after 11 tests.
 
 >   forAll 0 =
