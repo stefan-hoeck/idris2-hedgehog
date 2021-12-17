@@ -26,9 +26,9 @@ shiftXorMultiply n k w = shiftXor n w * k
 mix64 : Bits64 -> Bits64
 mix64 z0 =
    -- MurmurHash3Mixer
-    let z1 = shiftXorMultiply (fromNat 33) 0xff51afd7ed558ccd z0
-        z2 = shiftXorMultiply (fromNat 33) 0xc4ceb9fe1a85ec53 z1
-        z3 = shiftXor (fromNat 33) z2
+    let z1 = shiftXorMultiply 33 0xff51afd7ed558ccd z0
+        z2 = shiftXorMultiply 33 0xc4ceb9fe1a85ec53 z1
+        z3 = shiftXor 33 z2
     in z3
 
 -- used only in mixGamma
@@ -38,15 +38,15 @@ mix64variant13 z0 =
    -- http://zimbry.blogspot.fi/2011/09/better-bit-mixing-improving-on.html
    --
    -- Stafford's Mix13
-    let z1 = shiftXorMultiply (fromNat 30) 0xbf58476d1ce4e5b9 z0 -- MurmurHash3 mix constants
-        z2 = shiftXorMultiply (fromNat 27) 0x94d049bb133111eb z1
-        z3 = shiftXor (fromNat 31) z2
+    let z1 = shiftXorMultiply 30 0xbf58476d1ce4e5b9 z0 -- MurmurHash3 mix constants
+        z2 = shiftXorMultiply 27 0x94d049bb133111eb z1
+        z3 = shiftXor 31 z2
     in z3
 
 mixGamma : Bits64 -> Bits64
 mixGamma z0 =
     let z1 = mix64variant13 z0 .|. 1             -- force to be odd
-        n  = popCount (z1 `xor` (z1 `shiftR` fromNat 1))
+        n  = popCount (z1 `xor` (z1 `shiftR` 1))
     -- see: http://www.pcg-random.org/posts/bugs-in-splitmix.html
     -- let's trust the text of the paper, not the code.
     in if n >= 24
@@ -60,15 +60,15 @@ bits64ToDouble : Bits64 -> Double
 bits64ToDouble = fromInteger . cast
 
 doubleUlp : Double
-doubleUlp =  1.0 / bits64ToDouble (1 `shiftL` fromNat 53)
+doubleUlp =  1.0 / bits64ToDouble (1 `shiftL` 53)
 
 mask : Bits64 -> Bits64
-mask n = sl (fromNat 1)
-       . sl (fromNat 2)
-       . sl (fromNat 4)
-       . sl (fromNat 8)
-       . sl (fromNat 16)
-       $ sl (fromNat 32) maxBound
+mask n = sl 1
+       . sl 2
+       . sl 4
+       . sl 8
+       . sl 16
+       $ sl 32 maxBound
   where sl : Index {a = Bits64} -> Bits64 -> Bits64
         sl s x = let x' = shiftR x s
                   in if x' < n then x else x'
@@ -121,7 +121,7 @@ nextBits64 (MkSeed seed gamma) = let seed' = seed + gamma
 export
 nextDouble : Seed -> (Double, Seed)
 nextDouble g = let (w64,g') = nextBits64 g
-                in (bits64ToDouble (w64 `shiftR` fromNat 11) * doubleUlp, g')
+                in (bits64ToDouble (w64 `shiftR` 11) * doubleUlp, g')
 
 ||| Generate a `Double` in [x, y) range.
 export

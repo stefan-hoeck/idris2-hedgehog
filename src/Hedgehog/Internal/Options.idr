@@ -33,26 +33,26 @@ toConfidence n =
 
 setTests : String -> Config -> Either (List String) Config
 setTests s c =
-  map (\n => record { numTests = Just $ Relaxed $ MkTagged n} c)
+  map (\n => { numTests := Just $ Relaxed $ MkTagged n} c)
       (parseNat s)
 
 setShrinks : String -> Config -> Either (List String) Config
 setShrinks s c =
-  map (\n => record { numShrinks = Just $ MkTagged n} c)
+  map (\n => { numShrinks := Just $ MkTagged n} c)
       (parseNat s)
 
 setConfidence : String -> Config -> Either (List String) Config
 setConfidence s c =
-  map (\n => record { confidence = Just n} c)
+  map (\n => { confidence := Just n} c)
       (parseNat s >>= toConfidence)
 
 setTestsForced : String -> Config -> Either (List String) Config
 setTestsForced s c =
-  map (\n => record { numTests = Just $ Forced $ MkTagged n} c)
+  map (\n => { numTests := Just $ Forced $ MkTagged n} c)
       (parseNat s)
 
 setHelp : Config -> Either (List String) Config
-setHelp = Right . record { printHelp = True }
+setHelp = Right . { printHelp := True }
 
 descs : List $ OptDescr (Config -> Either (List String) Config)
 descs = [ MkOpt ['n'] ["testlimit"] (ReqArg setTests "<tests>")
