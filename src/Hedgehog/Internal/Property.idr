@@ -204,7 +204,7 @@ record Label a where
 
 public export
 Functor Label where
-  map f = record {labelAnnotation $= f}
+  map f = {labelAnnotation $= f}
 
 public export
 Foldable Label where
@@ -214,7 +214,7 @@ Foldable Label where
 
 public export
 Traversable Label where
-  traverse f l = (\v => record {labelAnnotation = v} l) <$>
+  traverse f l = (\v => {labelAnnotation := v} l) <$>
                  f l.labelAnnotation
 
 ||| This semigroup is right biased. The name, location and percentage from the
@@ -222,7 +222,7 @@ Traversable Label where
 ||| library doesn't allow setting multiple classes with the same 'ClassifierName'.
 export
 Semigroup a => Semigroup (Label a) where
-  ll <+> lr = record { labelAnnotation $= (ll.labelAnnotation <+>) } lr
+  ll <+> lr = { labelAnnotation $= (ll.labelAnnotation <+>) } lr
 
 ||| Log messages which are recorded during a test run.
 public export
@@ -263,7 +263,7 @@ record Coverage a where
 
 export
 Functor Coverage where
-  map f = record {coverageLabels $= map (map f) }
+  map f = {coverageLabels $= map (map f) }
 
 export
 Foldable Coverage where
@@ -526,7 +526,7 @@ namespace Property
   ||| Map a config modification function over a property.
   export
   mapConfig : (PropertyConfig -> PropertyConfig) -> Property -> Property
-  mapConfig f p = record { config $= f } p
+  mapConfig f p = { config $= f } p
 
   verifiedTermination : Property -> Property
   verifiedTermination =
@@ -536,14 +536,13 @@ namespace Property
           NoEarlyTermination c tests    => EarlyTermination c tests
           NoConfidenceTermination tests => EarlyTermination defaultConfidence tests
           EarlyTermination c tests      => EarlyTermination c tests
-      in
-        record { terminationCriteria = newTerminationCriteria } config
+      in { terminationCriteria := newTerminationCriteria } config
 
   ||| Adjust the number of times a property should be executed before it is considered
   ||| successful.
   export
   mapTests : (TestLimit -> TestLimit) -> Property -> Property
-  mapTests f = mapConfig (record {terminationCriteria $= setLimit})
+  mapTests f = mapConfig {terminationCriteria $= setLimit}
     where setLimit : TerminationCriteria -> TerminationCriteria
           setLimit (NoEarlyTermination c n)    = NoEarlyTermination c (f n)
           setLimit (NoConfidenceTermination n) = NoConfidenceTermination (f n)
@@ -563,13 +562,13 @@ namespace Property
   ||| runner gives up and prints the counterexample.
   export
   withShrinks : ShrinkLimit -> Property -> Property
-  withShrinks n = mapConfig $ record { shrinkLimit = n }
+  withShrinks n = mapConfig { shrinkLimit := n }
 
   ||| Make sure that the result is statistically significant in accordance to
   ||| the passed 'Confidence'
   export
   withConfidence : Confidence -> Property -> Property
-  withConfidence c = mapConfig $ record { terminationCriteria $= setConfidence }
+  withConfidence c = mapConfig { terminationCriteria $= setConfidence }
     where setConfidence : TerminationCriteria -> TerminationCriteria
           setConfidence (NoEarlyTermination _ n)    = NoEarlyTermination c n
           setConfidence (NoConfidenceTermination n) = NoConfidenceTermination n
@@ -590,7 +589,7 @@ record Group where
 namespace Group
   export
   mapProperty : (Property -> Property) -> Group -> Group
-  mapProperty f = record { properties $= map (mapSnd f) }
+  mapProperty f = { properties $= map (mapSnd f) }
 
   ||| Map a config modification function over all
   ||| properties in a `Group`.

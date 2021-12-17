@@ -79,7 +79,7 @@ record Report a where
 
 export
 Functor Report where
-  map f = record {status $= f}
+  map f = {status $= f}
 
 export
 Foldable Report where
@@ -119,8 +119,8 @@ Monoid ColumnWidth where
 ||| Construct a summary from a single result.
 export
 fromResult : Result -> Summary
-fromResult (Failed _) = record { failed = 1} neutral
-fromResult OK         = record { ok = 1} neutral
+fromResult (Failed _) = { failed := 1} neutral
+fromResult OK         = { ok := 1} neutral
 
 export
 summaryCompleted : Summary -> PropertyCount
