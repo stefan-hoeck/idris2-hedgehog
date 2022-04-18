@@ -57,7 +57,7 @@ takeSmallest si se (MkTagged slimit) updateUI t =
       case t of
         (Left $ MkFailure err diff, MkJournal logs) =>
            let fail = mkFailure si se shrinks Nothing err diff (reverse logs)
-            in updateUI (Shrinking fail) $> Failed fail
+            in updateUI (Shrinking fail) $> FailedProp fail
 
         (Right x, _) => pure OK
 
@@ -70,7 +70,23 @@ takeSmallest si se (MkTagged slimit) updateUI t =
 --          Test Runners
 --------------------------------------------------------------------------------
 
--- main test runner
+-- unit test runner
+unitReport : Test () -> Result
+unitReport test = case runTest test of
+  (Left $ MkFailure msg diff, MkJournal logs) =>
+    FailedUnit $ mkUnitFailure msg diff logs
+  (Right (),_) => OK
+
+-- unit test runner
+unitReportIO : TestT IO () -> IO Result
+unitReportIO test = do
+  res <- runTestT test
+  pure $ case res of
+    (Left $ MkFailure msg diff, MkJournal logs) =>
+      FailedUnit $ mkUnitFailure msg diff logs
+    (Right (),_) => OK
+
+-- property test runner
 checkReport :
      Monad m
   => PropertyConfig
@@ -127,10 +143,14 @@ checkTerm :  HasIO io
           -> Maybe PropertyName
           -> Size
           -> Seed
-          -> Property
-          -> io (Report Result)
-checkTerm term color name si se prop =
-  do result <- checkReport {m = io} prop.config si se prop.test $ \prog =>
+          -> Testable
+          -> io Result
+checkTerm term color name _ _   (UTest   test)  =
+  pure $ unitReport test
+checkTerm term color name _ _   (UTestIO test)  =
+  liftIO $ unitReportIO test
+checkTerm term color name si se (Prop cfg prop) =
+  do result <- checkReport {m = io} cfg si se prop $ \prog =>
                if multOf100 prog.tests
                   then let ppprog = renderProgress color name prog
                         in case prog.status of
@@ -139,38 +159,38 @@ checkTerm term color name si se prop =
                   else pure ()
 
      putOut term (renderResult color name result)
-     pure result
+     pure result.status
 
 checkWith :  HasIO io
           => Terminal
           -> UseColor
           -> Maybe PropertyName
-          -> Property
-          -> io (Report Result)
+          -> Testable
+          -> io Result
 checkWith term color name prop =
   initSMGen >>= \se => checkTerm term color name 0 se prop
 
 ||| Check a property.
 export
-checkNamed : HasIO io => PropertyName -> Property -> io Bool
+checkNamed : HasIO io => PropertyName -> Testable -> io Bool
 checkNamed name prop = do
   color <- detectColor
   term  <- console
-  rep   <- checkWith term color (Just name) prop
-  pure $ rep.status == OK
+  res   <- checkWith term color (Just name) prop
+  pure $ isSuccess res
 
 ||| Check a property.
 export
-check : HasIO io => Property -> io Bool
+check : HasIO io => Testable -> io Bool
 check prop = do
   color <- detectColor
   term  <- console
-  rep   <- checkWith term color Nothing prop
-  pure $ rep.status == OK
+  res   <- checkWith term color Nothing prop
+  pure $ isSuccess res
 
 ||| Check a property using a specific size and seed.
 export
-recheck : HasIO io => Size -> Seed -> Property -> io ()
+recheck : HasIO io => Size -> Seed -> Testable -> io ()
 recheck si se prop = do
   color <- detectColor
   term  <- console
@@ -179,13 +199,13 @@ recheck si se prop = do
 
 checkGroupWith :  Terminal
                -> UseColor
-               -> List (PropertyName, Property)
+               -> List (PropertyName, Testable)
                -> IO Summary
 checkGroupWith term color = run neutral
-  where run : Summary -> List (PropertyName, Property) -> IO Summary
+  where run : Summary -> List (PropertyName, Testable) -> IO Summary
         run s [] = pure s
-        run s ((pn,p) :: ps) = do rep  <- checkWith term color (Just pn) p
-                                  run (s <+> fromResult rep.status) ps
+        run s ((pn,p) :: ps) = do res  <- checkWith term color (Just pn) p
+                                  run (s <+> fromResult res) ps
 
 export
 checkGroup : HasIO io => Group -> io Bool
