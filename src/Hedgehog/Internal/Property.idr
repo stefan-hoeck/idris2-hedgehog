@@ -505,30 +505,42 @@ export covering
 forAll : Show a => Gen a -> PropertyT a
 forAll = forAllWith ppShow
 
-||| Lift a test in to a property.
-export
-test : Test a -> PropertyT a
-test = mapEitherT $ mapWriterT (pure . runIdentity)
-
 --------------------------------------------------------------------------------
 --          Property
 --------------------------------------------------------------------------------
 
-||| A property test, along with some configurable limits like how many times
-||| to run the test.
+||| A property or unit test, along with some configurable
+||| limits.
 public export
-record Property where
-  constructor MkProperty
-  config : PropertyConfig
-  test   : PropertyT ()
+data Testable : Type where
+  ||| A property test with some configurable settings.
+  Prop    : (config : PropertyConfig) -> (test : PropertyT ()) -> Testable
 
-namespace Property
+  ||| A unit test.
+  UTest   : (test : Test ()) -> Testable
+
+  ||| A unit test running in `IO`.
+  UTestIO : (test : TestT IO ()) -> Testable
+
+||| A legacy alias for `Testable`.
+public export
+0 Property : Type
+Property = Testable
+
+namespace Testable
   ||| Map a config modification function over a property.
   export
-  mapConfig : (PropertyConfig -> PropertyConfig) -> Property -> Property
-  mapConfig f p = { config $= f } p
+  mapProp : (PropertyT () -> PropertyT ()) -> Testable -> Testable
+  mapProp f (Prop c t) = Prop c (f t)
+  mapProp _ t          = t
 
-  verifiedTermination : Property -> Property
+  ||| Map a config modification function over a property.
+  export
+  mapConfig : (PropertyConfig -> PropertyConfig) -> Testable -> Testable
+  mapConfig f (Prop c t) = Prop (f c) t
+  mapConfig _ t          = t
+
+  verifiedTermination : Testable -> Testable
   verifiedTermination =
     mapConfig $ \config =>
       let
@@ -541,7 +553,7 @@ namespace Property
   ||| Adjust the number of times a property should be executed before it is considered
   ||| successful.
   export
-  mapTests : (TestLimit -> TestLimit) -> Property -> Property
+  mapTests : (TestLimit -> TestLimit) -> Testable -> Testable
   mapTests f = mapConfig {terminationCriteria $= setLimit}
     where setLimit : TerminationCriteria -> TerminationCriteria
           setLimit (NoEarlyTermination c n)    = NoEarlyTermination c (f n)
@@ -555,19 +567,19 @@ namespace Property
   ||| need to run repeatedly, you can use @withTests 1@ to define a property that
   ||| will only be checked once.
   export
-  withTests : TestLimit -> Property -> Property
+  withTests : TestLimit -> Testable -> Testable
   withTests = mapTests . const
 
   ||| Set the number of times a property is allowed to shrink before the test
   ||| runner gives up and prints the counterexample.
   export
-  withShrinks : ShrinkLimit -> Property -> Property
+  withShrinks : ShrinkLimit -> Testable -> Testable
   withShrinks n = mapConfig { shrinkLimit := n }
 
   ||| Make sure that the result is statistically significant in accordance to
   ||| the passed 'Confidence'
   export
-  withConfidence : Confidence -> Property -> Property
+  withConfidence : Confidence -> Testable -> Testable
   withConfidence c = mapConfig { terminationCriteria $= setConfidence }
     where setConfidence : TerminationCriteria -> TerminationCriteria
           setConfidence (NoEarlyTermination _ n)    = NoEarlyTermination c n
@@ -576,46 +588,56 @@ namespace Property
 
 ||| Creates a property with the default configuration.
 export
-property : PropertyT () -> Property
-property = MkProperty defaultConfig
+property : PropertyT () -> Testable
+property = Prop defaultConfig
 
-||| A named collection of property tests.
+||| Lift a test in to a `Testable`.
+export
+test : Test () -> Testable
+test = UTest
+
+||| Lift an effectful test in to a `Testable`.
+export
+testIO : TestT IO () -> Testable
+testIO = UTestIO
+
+||| A named collection of property or unit tests.
 public export
 record Group where
   constructor MkGroup
-  name       : GroupName
-  properties : List (PropertyName, Property)
+  name  : GroupName
+  tests : List (PropertyName, Testable)
 
 namespace Group
   export
-  mapProperty : (Property -> Property) -> Group -> Group
-  mapProperty f = { properties $= map (mapSnd f) }
+  mapTests : (Testable -> Testable) -> Group -> Group
+  mapTests f g = { tests $= map (mapSnd f) } g
 
   ||| Map a config modification function over all
   ||| properties in a `Group`.
   export
   mapConfig : (PropertyConfig -> PropertyConfig) -> Group -> Group
-  mapConfig = mapProperty . mapConfig
+  mapConfig = mapTests . mapConfig
 
   ||| Set the number of times the properties in a `Group`
   ||| should be executed before they are considered
   ||| successful.
   export
   withTests : TestLimit -> Group -> Group
-  withTests = mapProperty . withTests
+  withTests = mapTests . withTests
 
   ||| Set the number of times the properties in a `Group`
   ||| are allowed to shrink before the test
   ||| runner gives up and prints the counterexample.
   export
   withShrinks : ShrinkLimit -> Group -> Group
-  withShrinks = mapProperty . withShrinks
+  withShrinks = mapTests . withShrinks
 
   ||| Make sure that the results of a `Group` are statistically
   ||| significant in accordance to the passed 'Confidence'
   export
   withConfidence : Confidence -> Group -> Group
-  withConfidence = mapProperty . withConfidence
+  withConfidence = mapTests . withConfidence
 
 --------------------------------------------------------------------------------
 --          Coverage

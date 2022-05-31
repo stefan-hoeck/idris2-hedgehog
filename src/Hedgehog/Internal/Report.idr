@@ -29,9 +29,10 @@ record FailedAnnotation where
 
 %runElab derive "FailedAnnotation" [Generic,Meta,Show,Eq]
 
+||| Information about a failed property test.
 public export
-record FailureReport where
-  constructor MkFailureReport
+record PropFailure where
+  constructor MkPropFailure
   size        : Size
   seed        : Seed
   shrinks     : ShrinkCount
@@ -41,11 +42,22 @@ record FailureReport where
   diff        : Maybe Diff
   footnotes   : List String
 
-%runElab derive "FailureReport" [Generic,Meta,Show,Eq]
+%runElab derive "PropFailure" [Generic,Meta,Show,Eq]
+
+||| Information about a failed unit test.
+public export
+record UnitFailure where
+  constructor MkUnitFailure
+  annotations : List FailedAnnotation
+  message     : String
+  diff        : Maybe Diff
+  footnotes   : List String
+
+%runElab derive "UnitFailure" [Generic,Meta,Show,Eq]
 
 ||| The status of a running property test.
 public export
-data Progress = Running | Shrinking FailureReport
+data Progress = Running | Shrinking PropFailure
 
 %runElab derive "Progress" [Generic,Meta,Show,Eq]
 
@@ -54,14 +66,17 @@ data Progress = Running | Shrinking FailureReport
 ||| In the case of a failure it provides the seed used for the test, the
 ||| number of shrinks, and the execution log.
 public export
-data Result = Failed FailureReport | OK
+data Result = FailedProp PropFailure
+            | FailedUnit UnitFailure
+            | OK
 
 %runElab derive "Result" [Generic,Meta,Show,Eq]
 
 public export
 isFailure : Result -> Bool
-isFailure (Failed _) = True
-isFailure OK         = False
+isFailure (FailedProp _) = True
+isFailure (FailedUnit _) = True
+isFailure OK             = False
 
 public export
 isSuccess : Result -> Bool
@@ -119,8 +134,9 @@ Monoid ColumnWidth where
 ||| Construct a summary from a single result.
 export
 fromResult : Result -> Summary
-fromResult (Failed _) = { failed := 1} neutral
-fromResult OK         = { ok := 1} neutral
+fromResult (FailedProp _) = { failed := 1} neutral
+fromResult (FailedUnit _) = { failed := 1} neutral
+fromResult OK             = { ok := 1} neutral
 
 export
 summaryCompleted : Summary -> PropertyCount
@@ -150,11 +166,21 @@ mkFailure :  Size
           -> String
           -> Maybe Diff
           -> List (Lazy Log)
-          -> FailureReport
+          -> PropFailure
 mkFailure size seed shrinks mcoverage message diff logs =
   let inputs    = mapMaybe takeAnnotation logs
       footnotes = mapMaybe takeFootnote logs
-   in MkFailureReport size seed shrinks mcoverage inputs message diff footnotes
+   in MkPropFailure size seed shrinks mcoverage inputs message diff footnotes
+
+export
+mkUnitFailure :  String
+              -> Maybe Diff
+              -> List (Lazy Log)
+              -> UnitFailure
+mkUnitFailure message diff logs =
+  let inputs    = mapMaybe takeAnnotation logs
+      footnotes = mapMaybe takeFootnote logs
+   in MkUnitFailure inputs message diff footnotes
 
 --------------------------------------------------------------------------------
 --          Pretty Printing
@@ -268,11 +294,11 @@ ppFailedInput ix (MkFailedAnnotation val) =
   , indent 2 . vsep . map (markup AnnotationValue . pretty) $ lines val
   ]
 
-ppFailureReport :  Maybe PropertyName
-                -> TestCount
-                -> FailureReport
-                -> List (Doc Markup)
-ppFailureReport nm tests (MkFailureReport si se _ mcover inputs msg mdiff msgs0) =
+ppPropFailureReport :  Maybe PropertyName
+                    -> TestCount
+                    -> PropFailure
+                    -> List (Doc Markup)
+ppPropFailureReport nm tests (MkPropFailure si se _ mcover inputs msg mdiff msgs0) =
   whenSome (neutral ::)         .
   whenSome (++ [neutral])       .
   punctuate line                .
@@ -299,12 +325,33 @@ ppFailureReport nm tests (MkFailureReport si se _ mcover inputs msg mdiff msgs0)
             Nothing => []
             Just c  => do MkLabel _ _ count <- coverageFailures tests c
                           pure $
-                            cat [ "Failed ("
+                            cat [ "Failed Property ("
                                 , annotate CoverageText $
                                     ppCoverPercentage (coverPercentage tests count)
                                     <+> " coverage"
                                 , ")"
                                 ]
+
+ppUnitFailureReport :  Maybe PropertyName
+                    -> UnitFailure
+                    -> List (Doc Markup)
+ppUnitFailureReport nm (MkUnitFailure inputs msg mdiff msgs0) =
+  whenSome (neutral ::)         .
+  whenSome (++ [neutral])       .
+  punctuate line                .
+  map (vsep . map (indent 2))   .
+  filter (\xs => not $ null xs) $
+  [punctuate line args, docs]
+
+  where whenSome : Foldable t => (t a -> t a) -> t a -> t a
+        whenSome f xs = if null xs then xs else f xs
+
+        docs : List (Doc Markup)
+        docs = concatMap ppTextLines (msgs0 ++ if msg == "" then [] else [msg])
+             <+> maybe [] ppDiff mdiff
+
+        args : List (Doc Markup)
+        args = zipWith ppFailedInput [0 .. length inputs] (reverse inputs)
 
 ppName : Maybe PropertyName -> Doc ann
 ppName Nothing                = "<interactive>"
@@ -441,7 +488,7 @@ annotateSummary summary =
 ppResult : Maybe PropertyName -> Report Result -> Doc Markup
 ppResult name (MkReport tests coverage result) =
   case result of
-    Failed failure =>
+    FailedProp failure =>
       vsep $ [ icon FailedIcon '✗' . align . annotate FailedText $
                ppName name <++>
                "failed after" <++>
@@ -449,7 +496,14 @@ ppResult name (MkReport tests coverage result) =
                "."
              ] ++
              ppCoverage tests coverage ++
-             ppFailureReport name tests failure
+             ppPropFailureReport name tests failure
+
+    FailedUnit failure =>
+      vsep $ [ icon FailedIcon '✗' . align . annotate FailedText $
+               ppName name <++> "failed."
+             ] ++
+             ppCoverage tests coverage ++
+             ppUnitFailureReport name failure
 
     OK => vsep $ [ icon SuccessIcon '✓' . annotate SuccessText $
                    ppName name <++>
@@ -554,7 +608,7 @@ report :  (aborted : Bool)
        -> Report Result
 report aborted tests size seed cover conf =
   let failureReport = \msg =>
-        MkReport tests cover . Failed $
+        MkReport tests cover . FailedProp $
           mkFailure size seed 0 (Just cover) msg Nothing []
 
       coverageReached = successVerified tests cover conf

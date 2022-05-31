@@ -45,7 +45,7 @@ We can now specify the property we'd like to proof
 and verify by calling `check`:
 
 ```idris
-propReverse : Property
+propReverse : Testable
 propReverse = property $ do xs <- forAll charGen
                             xs === reverse (reverse xs)
 
@@ -74,7 +74,7 @@ so their definition is very similar:
 unicodeGen : Gen String
 unicodeGen = string (linear 0 30) unicode
 
-propertyFastPack : Property
+propertyFastPack : Testable
 propertyFastPack = property $ do s <- forAll unicodeGen
                                  s === fastPack (fastUnpack s)
 ```
@@ -83,7 +83,7 @@ We could also check that `fastUnpack` and `unpack` yield the
 same result:
 
 ```idris
-propertyFastUnpack : Property
+propertyFastUnpack : Testable
 propertyFastUnpack = property $ do s <- forAll unicodeGen
                                    unpack s === fastUnpack s
 ```
@@ -114,7 +114,7 @@ Running this in the REPL results in the following output:
 Next, we will write a property that does not hold:
 
 ```idris
-propAddInts : Property
+propAddInts : Testable
 propAddInts =
   let int20 = int $ linear 0 20
    in property $ do [a,b,c,d] <- forAll $ np [int20,int20,int20,int20]
@@ -172,11 +172,11 @@ same failing test twice:
 int1000 : Gen Int
 int1000 = int $ constant 0 1000
 
-propIntGreaterApp : Property
+propIntGreaterApp : Testable
 propIntGreaterApp = property $ do [a,b] <- forAll $ vect 2 int1000
                                   assert (a < b)
 
-propIntGreaterMonad : Property
+propIntGreaterMonad : Testable
 propIntGreaterMonad = property $ do a <- forAll int1000
                                     b <- forAll int1000
                                     assert (a < b)
@@ -233,7 +233,7 @@ generating some pretty output. The following runs 10000 tests,
 putting generated integers into one of five classes.
 
 ```idris
-propTwice : Property
+propTwice : Testable
 propTwice = withTests 10000 . property $
                do n <- forAll int1000
                   classify "zero" (n == 0)
@@ -265,7 +265,7 @@ five percent of the generated values are in the interval [10,100)
 or if not at least eighty percent are in the interval [100,1000]:
 
 ```idris
-propTwice2 : Property
+propTwice2 : Testable
 propTwice2 = withTests 10000 . property $
                 do n <- forAll int1000
                    cover 5 "[10,100)" (n >= 10 && n < 100)

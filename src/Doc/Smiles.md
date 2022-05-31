@@ -171,7 +171,7 @@ roundtripping via `lex` and `encode` gives back the original
 list of valid tokens.
 
 ```idris
-prop_lex1 : Property
+prop_lex1 : Testable
 prop_lex1 = property $ do ts <- forAll tokens
 
                           let enc : String
@@ -228,7 +228,7 @@ lexSmiles = lex [ (exact "Cl" <|> exact "Br" <|> alpha, organic)
                 , (is ')', const PClose)
                 ]
 
-prop_lex : Property
+prop_lex : Testable
 prop_lex = property $ do ts <- forAll tokens
 
                          let enc : String
