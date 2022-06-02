@@ -67,12 +67,17 @@ Starting from Idris2 version 0.5.1, tagged releases of the same
 minor version number (e.g. 0.5.x) will be made available, while the main
 branch keeps following the Idris2 main branch.
 
-The latest commit has been built against Idris 2 of version set in the ``.idris-version`` file.
-This file contains a version in the format which ``git describe --tags`` gives.
-
 In addition, the following external dependencies are
 required:
 
   * [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
   * [sop](https://github.com/stefan-hoeck/idris2-sop)
   * [pretty-show](https://github.com/stefan-hoeck/idris2-pretty-show)
+
+The latest commit is daily tested to build against the current
+HEAD of the Idris compiler. Since Idris2 releases are happening
+rather infrequently at the moment, it is suggested to use
+a package manager like [pack](https://github.com/stefan-hoeck/idris2-pack)
+to install and maintain matching versions of the Idris compiler
+and this library. Pack will also automatically install all
+required dependencies.
