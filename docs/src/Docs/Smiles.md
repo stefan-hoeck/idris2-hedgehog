@@ -51,7 +51,7 @@ as per the specification:
 ```idris
 data Elem = B | C | N | O | F | S | Cl | P | Br | I
 
-%runElab derive "Doc.Smiles.Elem" [Generic,Meta,Eq,Ord,Show]
+%runElab derive "Docs.Smiles.Elem" [Generic,Meta,Eq,Ord,Show]
 ```
 
 ## Writing the Lexer
