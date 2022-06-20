@@ -9,7 +9,7 @@ This is an Idris2 port of the Haskell library with some slight adjustments
 (and some limitations). Since this is a literate Idris2 file:
 
 ```idris
-module Doc.Intro
+module Docs.Intro
 
 import Data.List
 import Data.SOP

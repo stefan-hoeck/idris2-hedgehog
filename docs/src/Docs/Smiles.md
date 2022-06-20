@@ -10,7 +10,7 @@ the possibility to specify concrete isotopes, charged atoms,
 and stereochemic information.
 
 ```idris
-module Doc.Smiles
+module Docs.Smiles
 
 import Data.String
 import Data.Cotree
