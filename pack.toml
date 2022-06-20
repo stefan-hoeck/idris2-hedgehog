@@ -1,0 +1,9 @@
+[custom.all.hedgehog]
+type   = "local"
+path   = "."
+ipkg   = "hedgehog.ipkg"
+
+[custom.all.hedgehog-docs]
+type   = "local"
+path   = "docs"
+ipkg   = "docs.ipkg"

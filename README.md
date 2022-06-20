@@ -3,7 +3,7 @@ An Idris port of the [Haskell Hedgehog library](https://hackage.haskell.org/pack
 a property-based testing library in the spirit of QuickCheck.
 
 This is still work in progress but the core functionality is already
-there and a [tutorial](src/Doc/Intro.md) is in the making.
+there and a [tutorial](docs/src/Docs/Intro.md) is in the making.
 
 ## Features
 
