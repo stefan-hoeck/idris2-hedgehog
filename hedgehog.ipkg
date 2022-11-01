@@ -2,13 +2,13 @@ package hedgehog
 
 authors    = "stefan-hoeck"
 brief      = "A property based testing library with integrated shrinking"
-version    = 0.5.0
+version    = 0.6.0
 sourcedir  = "src"
-depends    = base         >= 0.5.1
-           , contrib      >= 0.5.1
-           , elab-util    >= 0.5.0
-           , pretty-show  >= 0.5.0
-           , sop          >= 0.5.0
+depends    = base         >= 0.6.0
+           , contrib
+           , elab-util
+           , pretty-show
+           , sop
 
 modules = Data.Bounded
         , Data.Cotree
