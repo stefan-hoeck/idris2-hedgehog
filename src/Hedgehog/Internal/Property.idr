@@ -7,7 +7,7 @@ import Control.Monad.Writer
 import Data.DPair
 import Data.Lazy
 import Data.SortedMap
-import Generics.Derive
+import Derive.Prelude
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Util
 import Text.Show.Diff
@@ -166,14 +166,14 @@ record Diff where
   diffSuffix  : String
   diffValue   : ValueDiff
 
-%runElab derive "Hedgehog.Internal.Property.Diff" [Generic,Meta,Show,Eq]
+%runElab derive "Hedgehog.Internal.Property.Diff" [Show,Eq]
 
 ||| Whether a test is covered by a classifier, and therefore belongs to a
 ||| 'Class'.
 public export
 data Cover = NotCovered | Covered
 
-%runElab derive "Cover" [Generic,Meta,Show,Eq,Ord]
+%runElab deriveGeneral ["Cover"] [Enum]
 
 public export
 Semigroup Cover where
@@ -200,7 +200,7 @@ record Label a where
   labelMinimum    : CoverPercentage
   labelAnnotation : a
 
-%runElab derive "Label" [Generic,Meta,Show,Eq]
+%runElab derive "Label" [Show,Eq]
 
 public export
 Functor Label where
@@ -230,8 +230,7 @@ data Log = Annotation (Lazy String)
          | Footnote (Lazy String)
          | LogLabel (Label Cover)
 
-%runElab derive "Log" [Generic,Meta,Show,Eq]
-
+%runElab derive "Log" [Show,Eq]
 
 ||| A record containing the details of a test run.
 public export
@@ -239,7 +238,8 @@ record Journal where
   constructor MkJournal
   journalLogs : List (Lazy Log)
 
-%runElab derive "Journal" [Generic,Meta,Show,Eq,Semigroup,Monoid]
+%runElab derive "Journal" [Show,Eq]
+%runElab deriveRecord "Journal" [Semigroup,Monoid]
 
 ||| Details on where and why a test failed.
 public export
@@ -248,7 +248,7 @@ record Failure where
   message : String
   diff    : Maybe Diff
 
-%runElab derive "Failure" [Generic,Meta,Show,Eq]
+%runElab derive "Failure" [Show,Eq]
 
 ||| The extent to which all classifiers cover a test.
 |||
@@ -259,7 +259,8 @@ record Coverage a where
   constructor MkCoverage
   coverageLabels : SortedMap LabelName (Label a)
 
-%runElab derive "Coverage" [Generic,Meta,Show,Eq]
+%runElab derive "Coverage" [Show,Eq]
+%runElab deriveRecord "Coverage" [Semigroup,Monoid]
 
 export
 Functor Coverage where
@@ -275,14 +276,6 @@ export
 Traversable Coverage where
   traverse f (MkCoverage sm) = MkCoverage <$> traverse (traverse f) sm
 
-export
-Semigroup a => Semigroup (Coverage a) where
-  MkCoverage c0 <+> MkCoverage c1 = MkCoverage $ c0 <+> c1
-
-export
-Semigroup a => Monoid (Coverage a) where
-  neutral = MkCoverage empty
-
 --------------------------------------------------------------------------------
 --          Config
 --------------------------------------------------------------------------------
@@ -293,7 +286,7 @@ data TerminationCriteria =
   | NoEarlyTermination Confidence TestLimit
   | NoConfidenceTermination TestLimit
 
-%runElab derive "TerminationCriteria" [Generic,Meta,Show,Eq]
+%runElab derive "TerminationCriteria" [Show,Eq]
 
 public export
 unCriteria : TerminationCriteria -> (Maybe Confidence, TestLimit)
@@ -309,7 +302,7 @@ record PropertyConfig where
   shrinkLimit         : ShrinkLimit
   terminationCriteria : TerminationCriteria
 
-%runElab derive "PropertyConfig" [Generic,Meta,Show,Eq]
+%runElab derive "PropertyConfig" [Show,Eq]
 
 ||| The minimum amount of tests to run for a 'Property'
 public export
