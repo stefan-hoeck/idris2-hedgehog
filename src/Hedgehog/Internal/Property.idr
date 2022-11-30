@@ -258,8 +258,7 @@ record Coverage a where
   constructor MkCoverage
   coverageLabels : SortedMap LabelName (Label a)
 
-%runElab derive "Coverage" [Show,Eq]
-%runElab deriveRecord "Coverage" [Semigroup,Monoid]
+%runElab deriveRecord "Coverage" [Show,Eq,Semigroup,Monoid]
 
 export
 Functor Coverage where
