@@ -173,7 +173,7 @@ record Diff where
 public export
 data Cover = NotCovered | Covered
 
-%runElab deriveGeneral ["Cover"] [Enum]
+%runElab deriveEnum "Cover" [Show,Eq,Ord]
 
 public export
 Semigroup Cover where
@@ -238,8 +238,7 @@ record Journal where
   constructor MkJournal
   journalLogs : List (Lazy Log)
 
-%runElab derive "Journal" [Show,Eq]
-%runElab deriveRecord "Journal" [Semigroup,Monoid]
+%runElab deriveRecord "Journal" [Show,Eq,Semigroup,Monoid]
 
 ||| Details on where and why a test failed.
 public export
