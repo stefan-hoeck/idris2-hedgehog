@@ -34,38 +34,21 @@ data Tag = ConfidenceTag
          | TestCountTag
          | TestLimitTag
 
+%runElab derive "Tag" [Show,Eq,Ord]
+
 public export
 record Tagged (tag : Tag) (t : Type) where
   constructor MkTagged
   unTag : t
 
-public export %inline
-Show t => Show (Tagged tag t) where
-  show = show . unTag
+%runElab derivePattern "Tagged" [I,P]
+  [Show,Eq,Ord,Num,FromString,Semigroup,Monoid]
 
 public export %inline
-Eq t => Eq (Tagged tag t) where
-  (==) = (==) `on` unTag
+Semigroup (Tagged t Nat) where (<+>) = (+)
 
 public export %inline
-Ord t => Ord (Tagged tag t) where
-  compare = compare `on` unTag
-
-public export %inline
-Num t => Num (Tagged tag t) where
-  fromInteger = MkTagged . fromInteger
-  MkTagged x + MkTagged y = MkTagged (x + y)
-  MkTagged x * MkTagged y = MkTagged (x * y)
-
-public export %inline
-FromString t => FromString (Tagged tag t) where
-  fromString = MkTagged . fromString
-
-public export %inline
-Semigroup (Tagged tag Nat) where (<+>) = (+)
-
-public export %inline
-Monoid (Tagged tag Nat) where neutral = 0
+Monoid (Tagged t Nat) where neutral = 0
 
 ||| The total number of tests which are covered by a classifier.
 |||
@@ -125,14 +108,7 @@ record Confidence where
   confidence : Bits64
   0 inBound    : confidence >= 2 = True
 
-public export %inline
-Eq Confidence where (==) = (==) `on` confidence
-
-public export %inline
-Ord Confidence where compare = compare `on` confidence
-
-public export %inline
-Show Confidence where showPrec p = showPrec p . confidence
+%runElab derive "Confidence" [Show,Eq,Ord]
 
 namespace Confidence
   public export
@@ -173,7 +149,7 @@ record Diff where
 public export
 data Cover = NotCovered | Covered
 
-%runElab deriveEnum "Cover" [Show,Eq,Ord]
+%runElab derive "Cover" [Show,Eq,Ord]
 
 public export
 Semigroup Cover where
@@ -238,7 +214,7 @@ record Journal where
   constructor MkJournal
   journalLogs : List (Lazy Log)
 
-%runElab deriveRecord "Journal" [Show,Eq,Semigroup,Monoid]
+%runElab derive "Journal" [Show,Eq,Semigroup,Monoid]
 
 ||| Details on where and why a test failed.
 public export
@@ -258,7 +234,7 @@ record Coverage a where
   constructor MkCoverage
   coverageLabels : SortedMap LabelName (Label a)
 
-%runElab deriveRecord "Coverage" [Show,Eq,Semigroup,Monoid]
+%runElab derive "Coverage" [Show,Eq,Semigroup,Monoid]
 
 export
 Functor Coverage where

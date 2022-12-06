@@ -34,7 +34,7 @@ bond types:
 public export
 data Bond = Sngl | Dbl | Trpl
 
-%runElab deriveEnum "Bond" [Show,Eq,Ord]
+%runElab derive "Bond" [Show,Eq,Ord]
 
 namespace Bond
   public export
@@ -51,7 +51,7 @@ as per the specification:
 ```idris
 data Elem = B | C | N | O | F | S | Cl | P | Br | I
 
-%runElab deriveEnum "Docs.Smiles.Elem" [Show,Eq,Ord]
+%runElab derive "Docs.Smiles.Elem" [Show,Eq,Ord]
 ```
 
 ## Writing the Lexer

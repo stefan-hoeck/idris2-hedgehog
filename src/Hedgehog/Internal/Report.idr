@@ -100,7 +100,7 @@ record Summary where
   failed  : PropertyCount
   ok      : PropertyCount
 
-%runElab deriveRecord "Summary" [Show,Eq,Semigroup,Monoid]
+%runElab derive "Summary" [Show,Eq,Semigroup,Monoid]
 
 record ColumnWidth where
   constructor MkColumnWidth
@@ -171,7 +171,7 @@ Semigroup MarkupStyle where
   _               <+> StyleAnnotation = StyleAnnotation
   StyleDefault    <+> _               = StyleDefault
 
-%runElab deriveEnum "MarkupStyle" [Show,Eq,Ord]
+%runElab derive "MarkupStyle" [Show,Eq,Ord]
 
 public export
 data Markup =

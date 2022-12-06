@@ -15,13 +15,13 @@ import System
 public export
 data UseColor = DisableColor | EnableColor
 
-%runElab deriveEnum "UseColor" [Show,Eq,Ord]
+%runElab derive "UseColor" [Show,Eq,Ord]
 
 ||| How verbose should the report output be.
 public export
 data Verbosity = Quiet | Normal
 
-%runElab deriveEnum "Verbosity" [Show,Eq,Ord]
+%runElab derive "Verbosity" [Show,Eq,Ord]
 
 --------------------------------------------------------------------------------
 --          Detecting Config Settings
