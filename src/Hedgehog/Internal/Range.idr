@@ -1,13 +1,17 @@
 module Hedgehog.Internal.Range
 
 import Data.Bounded
-import Data.Maybe
 import Data.Fin
+import Data.Maybe
 import Decidable.Equality
+import Derive.Prelude
 
 import Hedgehog.Internal.Util
 
 %hide Prelude.Range
+
+%language ElabReflection
+%default total
 
 public export
 MaxSizeNat : Nat
@@ -23,6 +27,8 @@ record Size where
   constructor MkSize
   size     : Nat
   0 sizeOk : size <= MaxSizeNat = True
+
+%runElab derive "Size" [Show,Eq,Ord]
 
 public export
 mkSize : (n : Nat) -> {auto 0 ok : n <= MaxSizeNat = True} -> Size
@@ -57,18 +63,6 @@ resize f s = mkSizeOrMax (f s.size)
 --------------------------------------------------------------------------------
 --          Interface Implementations
 --------------------------------------------------------------------------------
-
-export
-Show Size where
-  showPrec p (MkSize n _) = showPrec p n
-
-export
-Eq Size where
-  (==) = (==) `on` size
-
-export
-Ord Size where
-  compare = compare `on` size
 
 export
 MinBound Size where

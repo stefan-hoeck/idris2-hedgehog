@@ -15,7 +15,7 @@ module Docs.Smiles
 import Data.String
 import Data.Cotree
 import Data.Vect
-import Generics.Derive
+import Derive.Prelude
 import Text.Lexer
 
 import Hedgehog
@@ -34,7 +34,7 @@ bond types:
 public export
 data Bond = Sngl | Dbl | Trpl
 
-%runElab derive "Bond" [Generic,Meta,Eq,Ord,Show]
+%runElab derive "Bond" [Show,Eq,Ord]
 
 namespace Bond
   public export
@@ -51,7 +51,7 @@ as per the specification:
 ```idris
 data Elem = B | C | N | O | F | S | Cl | P | Br | I
 
-%runElab derive "Docs.Smiles.Elem" [Generic,Meta,Eq,Ord,Show]
+%runElab derive "Docs.Smiles.Elem" [Show,Eq,Ord]
 ```
 
 ## Writing the Lexer
@@ -70,7 +70,7 @@ data Token : Type where
   Ring    : Int -> Token
   Invalid : String -> Token
 
-%runElab derive "Smiles.Token" [Generic,Meta,Eq,Show]
+%runElab derive "Smiles.Token" [Eq,Show]
 
 encode : Token -> String
 encode (Organic elem True)  = toLower $ show elem

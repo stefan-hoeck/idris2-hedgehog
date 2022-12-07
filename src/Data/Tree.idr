@@ -4,25 +4,28 @@ import Data.List
 import Data.List1
 import Data.String
 
+import Derive.Prelude
+
+%language ElabReflection
 %default total
 
 --------------------------------------------------------------------------------
 --          Finite Trees
 --------------------------------------------------------------------------------
 
-mutual
+||| A finite rose tree
+public export
+record Tree (a : Type) where
+  constructor MkTree
+  value : a
+  forest : List (Tree a)
 
-  ||| A finite rose tree
-  public export
-  record Tree (a : Type) where
-    constructor MkTree
-    value : a
-    forest : Forest a
+||| A finite forest of trees
+public export
+Forest : Type -> Type
+Forest = List . Tree
 
-  ||| A finite forest of trees
-  public export
-  Forest : Type -> Type
-  Forest = List . Tree
+%runElab derive "Tree" [Show,Eq]
 
 --------------------------------------------------------------------------------
 --          Creating Trees
@@ -129,14 +132,6 @@ joinTree (MkTree (MkTree va tas) ftas) =
         joinF []        = []
         joinF (x :: xs) = joinTree x :: joinF xs
 
-eqTree : Eq a => Tree a -> Tree a -> Bool
-eqTree (MkTree x xs) (MkTree y ys) = x == y && eqF xs ys
-  where eqF : Forest a -> Forest a -> Bool
-        eqF [] []       = True
-        eqF [] (_ :: _) = False
-        eqF (_ :: _) [] = False
-        eqF (x :: xs) (y :: ys) = eqTree x y && eqF xs ys
-
 --------------------------------------------------------------------------------
 --          Visualizing Trees
 --------------------------------------------------------------------------------
@@ -163,10 +158,6 @@ drawTree  = unlines . draw
 --------------------------------------------------------------------------------
 --          Interfaces
 --------------------------------------------------------------------------------
-
-public export %inline
-Eq a => Eq (Tree a) where
-  (==) = eqTree
 
 public export %inline
 Foldable Tree where

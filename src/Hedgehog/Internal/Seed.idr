@@ -4,8 +4,7 @@ import Data.Bounded
 import Data.Bits
 import Data.DPair
 import Data.Fin
-
-import Generics.Derive
+import Derive.Prelude
 
 %default total
 
@@ -83,7 +82,7 @@ two64 = 1 `shiftL` 64
 public export
 data Seed = MkSeed Bits64 Bits64
 
-%runElab derive "Seed" [Generic,Meta,Eq,Show]
+%runElab derive "Seed" [Eq,Show]
 
 ||| Create an Seed from the given seed.
 export

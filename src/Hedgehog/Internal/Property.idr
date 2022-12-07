@@ -7,7 +7,7 @@ import Control.Monad.Writer
 import Data.DPair
 import Data.Lazy
 import Data.SortedMap
-import Generics.Derive
+import Derive.Prelude
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Util
 import Text.Show.Diff
@@ -34,38 +34,21 @@ data Tag = ConfidenceTag
          | TestCountTag
          | TestLimitTag
 
+%runElab derive "Tag" [Show,Eq,Ord]
+
 public export
 record Tagged (tag : Tag) (t : Type) where
   constructor MkTagged
   unTag : t
 
-public export %inline
-Show t => Show (Tagged tag t) where
-  show = show . unTag
+%runElab derivePattern "Tagged" [I,P]
+  [Show,Eq,Ord,Num,FromString,Semigroup,Monoid]
 
 public export %inline
-Eq t => Eq (Tagged tag t) where
-  (==) = (==) `on` unTag
+Semigroup (Tagged t Nat) where (<+>) = (+)
 
 public export %inline
-Ord t => Ord (Tagged tag t) where
-  compare = compare `on` unTag
-
-public export %inline
-Num t => Num (Tagged tag t) where
-  fromInteger = MkTagged . fromInteger
-  MkTagged x + MkTagged y = MkTagged (x + y)
-  MkTagged x * MkTagged y = MkTagged (x * y)
-
-public export %inline
-FromString t => FromString (Tagged tag t) where
-  fromString = MkTagged . fromString
-
-public export %inline
-Semigroup (Tagged tag Nat) where (<+>) = (+)
-
-public export %inline
-Monoid (Tagged tag Nat) where neutral = 0
+Monoid (Tagged t Nat) where neutral = 0
 
 ||| The total number of tests which are covered by a classifier.
 |||
@@ -125,14 +108,7 @@ record Confidence where
   confidence : Bits64
   0 inBound    : confidence >= 2 = True
 
-public export %inline
-Eq Confidence where (==) = (==) `on` confidence
-
-public export %inline
-Ord Confidence where compare = compare `on` confidence
-
-public export %inline
-Show Confidence where showPrec p = showPrec p . confidence
+%runElab derive "Confidence" [Show,Eq,Ord]
 
 namespace Confidence
   public export
@@ -166,14 +142,14 @@ record Diff where
   diffSuffix  : String
   diffValue   : ValueDiff
 
-%runElab derive "Hedgehog.Internal.Property.Diff" [Generic,Meta,Show,Eq]
+%runElab derive "Hedgehog.Internal.Property.Diff" [Show,Eq]
 
 ||| Whether a test is covered by a classifier, and therefore belongs to a
 ||| 'Class'.
 public export
 data Cover = NotCovered | Covered
 
-%runElab derive "Cover" [Generic,Meta,Show,Eq,Ord]
+%runElab derive "Cover" [Show,Eq,Ord]
 
 public export
 Semigroup Cover where
@@ -200,7 +176,7 @@ record Label a where
   labelMinimum    : CoverPercentage
   labelAnnotation : a
 
-%runElab derive "Label" [Generic,Meta,Show,Eq]
+%runElab derive "Label" [Show,Eq]
 
 public export
 Functor Label where
@@ -230,8 +206,7 @@ data Log = Annotation (Lazy String)
          | Footnote (Lazy String)
          | LogLabel (Label Cover)
 
-%runElab derive "Log" [Generic,Meta,Show,Eq]
-
+%runElab derive "Log" [Show,Eq]
 
 ||| A record containing the details of a test run.
 public export
@@ -239,7 +214,7 @@ record Journal where
   constructor MkJournal
   journalLogs : List (Lazy Log)
 
-%runElab derive "Journal" [Generic,Meta,Show,Eq,Semigroup,Monoid]
+%runElab derive "Journal" [Show,Eq,Semigroup,Monoid]
 
 ||| Details on where and why a test failed.
 public export
@@ -248,7 +223,7 @@ record Failure where
   message : String
   diff    : Maybe Diff
 
-%runElab derive "Failure" [Generic,Meta,Show,Eq]
+%runElab derive "Failure" [Show,Eq]
 
 ||| The extent to which all classifiers cover a test.
 |||
@@ -259,7 +234,7 @@ record Coverage a where
   constructor MkCoverage
   coverageLabels : SortedMap LabelName (Label a)
 
-%runElab derive "Coverage" [Generic,Meta,Show,Eq]
+%runElab derive "Coverage" [Show,Eq,Semigroup,Monoid]
 
 export
 Functor Coverage where
@@ -275,14 +250,6 @@ export
 Traversable Coverage where
   traverse f (MkCoverage sm) = MkCoverage <$> traverse (traverse f) sm
 
-export
-Semigroup a => Semigroup (Coverage a) where
-  MkCoverage c0 <+> MkCoverage c1 = MkCoverage $ c0 <+> c1
-
-export
-Semigroup a => Monoid (Coverage a) where
-  neutral = MkCoverage empty
-
 --------------------------------------------------------------------------------
 --          Config
 --------------------------------------------------------------------------------
@@ -293,7 +260,7 @@ data TerminationCriteria =
   | NoEarlyTermination Confidence TestLimit
   | NoConfidenceTermination TestLimit
 
-%runElab derive "TerminationCriteria" [Generic,Meta,Show,Eq]
+%runElab derive "TerminationCriteria" [Show,Eq]
 
 public export
 unCriteria : TerminationCriteria -> (Maybe Confidence, TestLimit)
@@ -309,7 +276,7 @@ record PropertyConfig where
   shrinkLimit         : ShrinkLimit
   terminationCriteria : TerminationCriteria
 
-%runElab derive "PropertyConfig" [Generic,Meta,Show,Eq]
+%runElab derive "PropertyConfig" [Show,Eq]
 
 ||| The minimum amount of tests to run for a 'Property'
 public export

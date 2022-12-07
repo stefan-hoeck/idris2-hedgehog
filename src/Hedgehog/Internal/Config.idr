@@ -1,6 +1,6 @@
 module Hedgehog.Internal.Config
 
-import Generics.Derive
+import Derive.Prelude
 import System
 
 %language ElabReflection
@@ -15,13 +15,13 @@ import System
 public export
 data UseColor = DisableColor | EnableColor
 
-%runElab derive "UseColor" [Generic,Meta,Show,Eq,Ord]
+%runElab derive "UseColor" [Show,Eq,Ord]
 
 ||| How verbose should the report output be.
 public export
 data Verbosity = Quiet | Normal
 
-%runElab derive "Verbosity" [Generic,Meta,Show,Eq,Ord]
+%runElab derive "Verbosity" [Show,Eq,Ord]
 
 --------------------------------------------------------------------------------
 --          Detecting Config Settings

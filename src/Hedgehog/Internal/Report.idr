@@ -3,7 +3,7 @@ module Hedgehog.Internal.Report
 import Data.List1
 import Data.Nat
 import Data.SortedMap
-import Generics.Derive
+import Derive.Prelude
 import Hedgehog.Internal.Config
 import Hedgehog.Internal.Property
 import Hedgehog.Internal.Range
@@ -27,7 +27,7 @@ record FailedAnnotation where
   constructor MkFailedAnnotation
   failedValue : String
 
-%runElab derive "FailedAnnotation" [Generic,Meta,Show,Eq]
+%runElab derive "FailedAnnotation" [Show,Eq]
 
 public export
 record FailureReport where
@@ -41,13 +41,13 @@ record FailureReport where
   diff        : Maybe Diff
   footnotes   : List String
 
-%runElab derive "FailureReport" [Generic,Meta,Show,Eq]
+%runElab derive "FailureReport" [Show,Eq]
 
 ||| The status of a running property test.
 public export
 data Progress = Running | Shrinking FailureReport
 
-%runElab derive "Progress" [Generic,Meta,Show,Eq]
+%runElab derive "Progress" [Show,Eq]
 
 ||| The status of a completed property test.
 |||
@@ -56,7 +56,7 @@ data Progress = Running | Shrinking FailureReport
 public export
 data Result = Failed FailureReport | OK
 
-%runElab derive "Result" [Generic,Meta,Show,Eq]
+%runElab derive "Result" [Show,Eq]
 
 public export
 isFailure : Result -> Bool
@@ -75,7 +75,7 @@ record Report a where
   coverage : Coverage CoverCount
   status   : a
 
-%runElab derive "Report" [Generic,Meta,Show,Eq]
+%runElab derive "Report" [Show,Eq]
 
 export
 Functor Report where
@@ -100,7 +100,7 @@ record Summary where
   failed  : PropertyCount
   ok      : PropertyCount
 
-%runElab derive "Summary" [Generic,Meta,Show,Eq,Semigroup,Monoid]
+%runElab derive "Summary" [Show,Eq,Semigroup,Monoid]
 
 record ColumnWidth where
   constructor MkColumnWidth
@@ -171,7 +171,7 @@ Semigroup MarkupStyle where
   _               <+> StyleAnnotation = StyleAnnotation
   StyleDefault    <+> _               = StyleDefault
 
-%runElab derive "MarkupStyle" [Generic,Meta,Show,Eq]
+%runElab derive "MarkupStyle" [Show,Eq,Ord]
 
 public export
 data Markup =
@@ -199,6 +199,8 @@ data Markup =
   | ReproduceHeader
   | ReproduceGutter
   | ReproduceSource
+
+%runElab derive "Markup" [Show,Eq,Ord]
 
 ppShow : Show x => x -> Doc ann
 ppShow = pretty . show
