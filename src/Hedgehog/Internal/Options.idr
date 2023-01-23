@@ -5,6 +5,8 @@ import Decidable.Equality
 import Hedgehog.Internal.Property
 import System.Console.GetOpt
 
+%default total
+
 public export
 data NumTest = Relaxed TestLimit | Forced TestLimit
 

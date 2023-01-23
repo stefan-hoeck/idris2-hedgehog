@@ -173,18 +173,21 @@ int1000 : Gen Int
 int1000 = int $ constant 0 1000
 
 propIntGreaterApp : Property
-propIntGreaterApp = property $ do [a,b] <- forAll $ vect 2 int1000
-                                  assert (a < b)
+propIntGreaterApp = property $ do
+  [a,b] <- forAll $ vect 2 int1000
+  assert (a < b)
 
 propIntGreaterMonad : Property
-propIntGreaterMonad = property $ do a <- forAll int1000
-                                    b <- forAll int1000
-                                    assert (a < b)
+propIntGreaterMonad = property $ do
+  a <- forAll int1000
+  b <- forAll int1000
+  assert (a < b)
 
 checkIntGreater : IO ()
-checkIntGreater =  checkNamed "propIntGreaterApp" propIntGreaterApp
-                *> checkNamed "propIntGreaterMonad" propIntGreaterMonad
-                $> ()
+checkIntGreater =
+     checkNamed "propIntGreaterApp" propIntGreaterApp
+  *> checkNamed "propIntGreaterMonad" propIntGreaterMonad
+  $> ()
 ```
 
 Both tests fail, but their shrinking behavior is different.

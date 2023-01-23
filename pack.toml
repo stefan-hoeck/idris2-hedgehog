@@ -11,7 +11,7 @@ ipkg   = "docs.ipkg"
 [custom.all.elab-util]
 type   = "git"
 url    = "https://github.com/stefan-hoeck/idris2-elab-util"
-commit = "latest:main"
+commit = "latest:prettier"
 ipkg   = "elab-util.ipkg"
 
 [custom.all.sop]
@@ -23,5 +23,17 @@ ipkg   = "sop.ipkg"
 [custom.all.pretty-show]
 type   = "git"
 url    = "https://github.com/stefan-hoeck/idris2-pretty-show"
-commit = "latest:main"
+commit = "latest:prettier"
 ipkg   = "pretty-show.ipkg"
+
+[custom.all.elab-pretty]
+type   = "git"
+url    = "https://github.com/stefan-hoeck/idris2-elab-util"
+commit = "latest:prettier"
+ipkg   = "elab-pretty.ipkg"
+
+[custom.all.parser]
+type   = "git"
+url    = "https://github.com/stefan-hoeck/idris2-parser"
+commit = "latest:main"
+ipkg   = "parser.ipkg"
