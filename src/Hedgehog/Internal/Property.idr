@@ -6,7 +6,6 @@ import Control.Monad.Trans
 import Control.Monad.Writer
 import Data.DPair
 import Data.Lazy
-import Data.SortedMap
 import Derive.Prelude
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Util
@@ -229,26 +228,62 @@ record Failure where
 |||
 ||| When a given classification's coverage does not exceed the required/
 ||| minimum, the test will be failed.
-public export
+export
 record Coverage a where
   constructor MkCoverage
-  coverageLabels : SortedMap LabelName (Label a)
+  coverageLabels : List (LabelName, Label a)
 
-%runElab derive "Coverage" [Show,Eq,Semigroup,Monoid]
+%runElab derive "Coverage" [Show,Eq]
+
+export %inline
+names : Coverage a -> List LabelName
+names = map fst . coverageLabels
+
+export %inline
+labels : Coverage a -> List (Label a)
+labels = map snd . coverageLabels
+
+export %inline
+annotations : Coverage a -> List a
+annotations = map (labelAnnotation . snd) . coverageLabels
+
+mergeWith :
+     Ord k
+  => SnocList (k,v)
+  -> (v -> v -> v)
+  -> List (k,v)
+  -> List (k,v)
+  -> List (k,v)
+mergeWith sp _ [] ys               = sp <>> ys
+mergeWith sp _ xs []               = sp <>> xs
+mergeWith sp f (x :: xs) (y :: ys) = case compare (fst x) (fst y) of
+  LT => mergeWith (sp :< x) f xs (y :: ys)
+  EQ => mergeWith (sp :< (fst x, f (snd x) (snd y))) f xs ys
+  GT => mergeWith (sp :< y) f (x::xs) ys
+
+export %inline
+Semigroup a => Semigroup (Coverage a) where
+  MkCoverage x <+> MkCoverage y =
+    MkCoverage $ mergeWith [<] (<+>) x y
+
+export %inline
+Semigroup a => Monoid (Coverage a) where
+  neutral = MkCoverage []
 
 export
 Functor Coverage where
-  map f = {coverageLabels $= map (map f) }
+  map f = {coverageLabels $= map (mapSnd $ map f) }
 
 export
 Foldable Coverage where
-  foldl f acc (MkCoverage sm) = foldl (foldl f) acc sm
-  foldr f acc (MkCoverage sm) = foldr (\l,a => foldr f a l) acc sm
+  foldl f acc = foldl f acc . annotations
+  foldr f acc = foldr f acc . annotations
   null = null . coverageLabels
 
 export
 Traversable Coverage where
-  traverse f (MkCoverage sm) = MkCoverage <$> traverse (traverse f) sm
+  traverse f (MkCoverage sm) =
+    MkCoverage <$> traverse ((traverse . traverse) f) sm
 
 --------------------------------------------------------------------------------
 --          Config
@@ -601,8 +636,8 @@ labelCovered tests (MkLabel _ min population) =
 
 export
 coverageFailures : TestCount -> Coverage CoverCount -> List $ Label CoverCount
-coverageFailures tests (MkCoverage kvs) =
-  filter (not . labelCovered tests) (values kvs)
+coverageFailures tests kvs =
+  filter (not . labelCovered tests) (labels kvs)
 
 ||| All labels are covered
 export
@@ -658,7 +693,7 @@ collect x = cover 0 (MkTagged $ show x) True
 
 
 fromLabel : Label a -> Coverage a
-fromLabel x = MkCoverage $ singleton (labelName x) x
+fromLabel x = MkCoverage $ [(labelName x, x)]
 
 unionsCoverage : Semigroup a => List (Coverage a) -> Coverage a
 unionsCoverage = MkCoverage . concatMap coverageLabels
@@ -720,7 +755,7 @@ boundsForLabel (MkTagged tests) (MkConfidence c ib) lbl =
 export
 confidenceSuccess : TestCount -> Confidence -> Coverage CoverCount -> Bool
 confidenceSuccess tests confidence =
-  all assertLow . values . coverageLabels
+  all assertLow . labels
   where assertLow : Label CoverCount -> Bool
         assertLow cc =
           fst (boundsForLabel tests confidence cc) >=
@@ -731,7 +766,7 @@ confidenceSuccess tests confidence =
 export
 confidenceFailure : TestCount -> Confidence -> Coverage CoverCount -> Bool
 confidenceFailure tests confidence =
-  any assertHigh . values . coverageLabels
+  any assertHigh . labels
   where assertHigh : Label CoverCount -> Bool
         assertHigh cc =
           snd (boundsForLabel tests confidence cc) <

@@ -16,6 +16,8 @@ import Data.SOP
 import Data.String
 import Data.Vect
 import Hedgehog
+
+%default total
 ```
 
 ## A First Example

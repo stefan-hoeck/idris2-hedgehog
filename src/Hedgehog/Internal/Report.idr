@@ -1,8 +1,6 @@
 module Hedgehog.Internal.Report
 
-import Data.List1
 import Data.Nat
-import Data.SortedMap
 import Derive.Prelude
 import Hedgehog.Internal.Config
 import Hedgehog.Internal.Property
@@ -10,9 +8,7 @@ import Hedgehog.Internal.Range
 import Hedgehog.Internal.Seed
 import Hedgehog.Internal.Util
 import Text.Show.Diff
-import Text.PrettyPrint.Prettyprinter
-import Text.PrettyPrint.Prettyprinter.Render.Terminal as Term
-import Text.PrettyPrint.Prettyprinter.Render.String   as Str
+import Text.PrettyPrint.Bernardy.ANSI
 
 %default total
 
@@ -202,297 +198,10 @@ data Markup =
 
 %runElab derive "Markup" [Show,Eq,Ord]
 
-ppShow : Show x => x -> Doc ann
-ppShow = pretty . show
+color : Color -> List SGR
+color c = [SetForeground c]
 
-markup : Markup -> Doc Markup -> Doc Markup
-markup = annotate
-
-gutter : Markup -> Doc Markup -> Doc Markup
-gutter m x = markup m ">" <++> x
-
-icon : Markup -> Char -> Doc Markup -> Doc Markup
-icon m i x = markup m (pretty i) <++> x
-
-ppTestCount : TestCount -> Doc ann
-ppTestCount (MkTagged 1) = "1 test"
-ppTestCount (MkTagged n) = ppShow n <++> "tests"
-
-ppShrinkCount : ShrinkCount -> Doc ann
-ppShrinkCount (MkTagged 1) = "1 shrink"
-ppShrinkCount (MkTagged n) = ppShow n <++> "shrinks"
-
-ppRawPropertyCount : PropertyCount -> Doc ann
-ppRawPropertyCount (MkTagged n) = ppShow n
-
-ppLineDiff : LineDiff -> Doc Markup
-ppLineDiff (LineSame x)    = markup DiffSame    $ "  " <+> pretty x
-ppLineDiff (LineRemoved x) = markup DiffRemoved $ "- " <+> pretty x
-ppLineDiff (LineAdded x)   = markup DiffAdded   $ "+ " <+> pretty x
-
-ppDiff : Diff -> List (Doc Markup)
-ppDiff (MkDiff pre removed inf added suffix diff) =
-    ( markup DiffPrefix (pretty pre)      <+>
-      markup DiffRemoved (pretty removed) <+>
-      markup DiffInfix (pretty inf)       <+>
-      markup DiffAdded (pretty added)     <+>
-      markup DiffSuffix (pretty suffix)
-    ) :: map ppLineDiff (toLineDiff diff)
-
-ppLabelName : LabelName -> Doc ann
-ppLabelName = pretty . unTag
-
-renderCoverPercentage : CoverPercentage -> String
-renderCoverPercentage (MkTagged p) =
-  show (round {a = Double} (p * 10.0) / 10.0) <+> "%"
-
-ppCoverPercentage : CoverPercentage -> Doc Markup
-ppCoverPercentage = pretty . renderCoverPercentage
-
-ppReproduce : Maybe PropertyName -> Size -> Seed -> Doc Markup
-ppReproduce name size seed =
-  vsep [
-    markup ReproduceHeader "This failure can be reproduced by running:"
-  , gutter ReproduceGutter . markup ReproduceSource $
-        "recheck" <++>
-        pretty (showPrec App size) <++>
-        pretty (showPrec App seed) <++>
-        maybe "<property>" (pretty . unTag) name
-  ]
-
-ppTextLines : String -> List (Doc Markup)
-ppTextLines = map pretty . lines
-
-ppFailedInput : Nat -> FailedAnnotation -> Doc Markup
-ppFailedInput ix (MkFailedAnnotation val) =
-  vsep [
-    "forAll" <++> ppShow ix <++> "="
-  , indent 2 . vsep . map (markup AnnotationValue . pretty) $ lines val
-  ]
-
-ppFailureReport :  Maybe PropertyName
-                -> TestCount
-                -> FailureReport
-                -> List (Doc Markup)
-ppFailureReport nm tests (MkFailureReport si se _ mcover inputs msg mdiff msgs0) =
-  whenSome (neutral ::)         .
-  whenSome (++ [neutral])       .
-  punctuate line                .
-  map (vsep . map (indent 2))   .
-  filter (\xs => not $ null xs) $
-  [punctuate line args, coverage, docs, bottom]
-
-  where whenSome : Foldable t => (t a -> t a) -> t a -> t a
-        whenSome f xs = if null xs then xs else f xs
-
-        bottom : List (Doc Markup)
-        bottom = maybe [ppReproduce nm si se] (const Nil) mcover
-
-        docs : List (Doc Markup)
-        docs = concatMap ppTextLines (msgs0 ++ if msg == "" then [] else [msg])
-             <+> maybe [] ppDiff mdiff
-
-        args : List (Doc Markup)
-        args = zipWith ppFailedInput [0 .. length inputs] (reverse inputs)
-
-        coverage : List (Doc Markup)
-        coverage =
-          case mcover of
-            Nothing => []
-            Just c  => do MkLabel _ _ count <- coverageFailures tests c
-                          pure $
-                            cat [ "Failed ("
-                                , annotate CoverageText $
-                                    ppCoverPercentage (coverPercentage tests count)
-                                    <+> " coverage"
-                                , ")"
-                                ]
-
-ppName : Maybe PropertyName -> Doc ann
-ppName Nothing                = "<interactive>"
-ppName (Just $ MkTagged name) = pretty name
-
-labelWidth : TestCount -> Label CoverCount -> ColumnWidth
-labelWidth tests x =
-  let percentage = length .
-                   renderCoverPercentage $
-                   coverPercentage tests x.labelAnnotation
-
-      minimum = if x.labelMinimum == 0
-                   then the Nat 0
-                   else length .
-                        renderCoverPercentage $
-                        x.labelMinimum
-
-      name = length . unTag $ x.labelName
-
-      nameFail = if labelCovered tests x then the Nat 0 else name
-
-  in MkColumnWidth percentage minimum name nameFail
-
-coverageWidth : TestCount -> Coverage CoverCount -> ColumnWidth
-coverageWidth tests (MkCoverage labels) = concatMap (labelWidth tests) labels
-
-ppLeftPad : Nat -> Doc ann -> Doc ann
-ppLeftPad n doc =
-  let ndoc = length (show doc)
-      pad  = pretty . pack $ replicate (n `minus` ndoc) ' '
-   in pad <+> doc
-
-ppCoverBar : CoverPercentage -> CoverPercentage -> Doc Markup
-ppCoverBar (MkTagged percentage) (MkTagged minimum) =
-  let barWidth         = the Nat 20
-      coverageRatio    = percentage / 100.0
-      coverageWidth    = toNat . floor $ coverageRatio * cast barWidth
-      minimumRatio     = minimum / 100.0
-      minimumWidth     = toNat . floor $ minimumRatio * cast barWidth
-      fillWidth        = pred $ barWidth `minus` coverageWidth
-      fillErrorWidth   = pred $ minimumWidth `minus` coverageWidth
-      fillSurplusWidth = fillWidth `minus` fillErrorWidth
-      full             = '█'
-      parts1           = '·' ::: ['▏','▎','▍','▌','▋','▊','▉']
-      parts            = forget parts1
-
-      ix               = toNat . floor $
-                         ((coverageRatio * cast barWidth) - cast coverageWidth)
-                         * cast (length parts)
-
-      part             = case inBounds ix parts of
-                              Yes ib => index ix parts
-                              No  _  => head parts1
-
-   in hcat [ pretty . pack $ replicate coverageWidth full
-           , if coverageWidth < barWidth then
-               if ix == 0 then
-                 if fillErrorWidth > 0 then annotate FailedText $ pretty part
-                 else annotate CoverageFill $ pretty part
-               else pretty part
-             else ""
-           , annotate FailedText . pretty  . pack $
-               replicate fillErrorWidth (head parts1)
-           , annotate CoverageFill . pretty . pack $
-               replicate fillSurplusWidth (head parts1)
-           ]
-
-ppLabel : TestCount -> ColumnWidth -> Label CoverCount -> Doc Markup
-ppLabel tests w x@(MkLabel name minimum count) =
-  let covered  = labelCovered tests x
-      ltext    = if not covered then annotate CoverageText else id
-      lborder  = annotate (StyledBorder StyleDefault)
-      licon    = if not covered then annotate CoverageText "⚠ " else "  "
-      lname    = fill (cast w.widthName) (ppLabelName name)
-      wminimum = ppLeftPad w.widthMinimum $ ppCoverPercentage minimum
-      lcover   = wcover ""
-
-      lminimum =
-        if w.widthMinimum == 0 then neutral
-        else if not covered then " ✗ " <+> wminimum
-        else if minimum == 0 then "   " <+> ppLeftPad w.widthMinimum ""
-        else " ✓ " <+> wminimum
-
-
-   in hcat [ licon
-           , ltext lname
-           , lborder " "
-           , ltext lcover
-           , lborder " "
-           , ltext $ ppCoverBar (coverPercentage tests count) minimum
-           , lborder ""
-           , ltext lminimum
-           ]
-
-
-  where wcover : String -> Doc Markup
-        wcover i = ppLeftPad (w.widthPercentage + length i) $
-                   pretty i <+>
-                   ppCoverPercentage (coverPercentage tests count)
-
-ppCoverage : TestCount -> Coverage CoverCount -> List (Doc Markup)
-ppCoverage tests x =
-  map (ppLabel tests (coverageWidth tests x)) $
-  values x.coverageLabels
-
-ppWhenNonZero : Doc ann -> PropertyCount -> Maybe (Doc ann)
-ppWhenNonZero _      0 = Nothing
-ppWhenNonZero suffix n = Just $ ppRawPropertyCount n <++> suffix
-
-export
-ppProgress : Maybe PropertyName -> Report Progress -> Doc Markup
-ppProgress name (MkReport tests coverage status) =
-  case status of
-     Running =>
-       vsep $ [ icon RunningIcon '●' . annotate RunningHeader $
-                ppName name <++>
-                "passed" <++>
-                ppTestCount tests <+> "(running)"
-              ] ++ ppCoverage tests coverage
-
-     Shrinking failure =>
-       icon ShrinkingIcon '↯' . annotate ShrinkingHeader $
-         ppName name <++> "failed after" <++> ppTestCount tests
-
-annotateSummary : Summary -> Doc Markup -> Doc Markup
-annotateSummary summary =
-  if summary.failed > 0 then
-    icon FailedIcon '✗' . annotate FailedText
-  else if summary.waiting > 0 || summary.running > 0 then
-    icon WaitingIcon '○' . annotate WaitingHeader
-  else
-    icon SuccessIcon '✓' . annotate SuccessText
-
-ppResult : Maybe PropertyName -> Report Result -> Doc Markup
-ppResult name (MkReport tests coverage result) =
-  case result of
-    Failed failure =>
-      vsep $ [ icon FailedIcon '✗' . align . annotate FailedText $
-               ppName name <++>
-               "failed after" <++>
-               ppTestCount tests <+>
-               "."
-             ] ++
-             ppCoverage tests coverage ++
-             ppFailureReport name tests failure
-
-    OK => vsep $ [ icon SuccessIcon '✓' . annotate SuccessText $
-                   ppName name <++>
-                   "passed" <++>
-                   ppTestCount tests <+>
-                   "."
-                 ] ++
-                 ppCoverage tests coverage
-
-export
-ppSummary : Summary -> Doc Markup
-ppSummary summary =
-  let complete = summaryCompleted summary == summaryTotal summary
-      suffix = if complete then the (Doc Markup) "." else " (running)"
-
-   in annotateSummary summary .
-      (<+> suffix) .
-      hcat .
-      addPrefix complete .
-      punctuate ", " $
-      catMaybes [
-          ppWhenNonZero "failed" summary.failed
-        , if complete then
-            ppWhenNonZero "succeeded" summary.ok
-          else
-            Nothing
-      ]
-
-  where doPrefix : Bool -> Doc Markup -> Doc Markup
-        doPrefix True _    = neutral
-        doPrefix False end =
-          ppRawPropertyCount (summaryCompleted summary) <+>
-          "/" <+>
-          ppRawPropertyCount (summaryTotal summary) <++>
-          "complete" <+> end
-
-        addPrefix : Bool -> List (Doc Markup) -> List (Doc Markup)
-        addPrefix complete [] = [doPrefix complete neutral]
-        addPrefix complete xs = doPrefix complete ": " :: xs
-
-toAnsi : Markup -> AnsiStyle
+toAnsi : Markup -> List SGR
 toAnsi (StyledBorder StyleAnnotation) = []
 toAnsi (StyledBorder StyleDefault)    = []
 toAnsi (StyledBorder StyleFailure)    = []
@@ -520,27 +229,296 @@ toAnsi SuccessText                    = color Green
 toAnsi WaitingHeader                  = []
 toAnsi WaitingIcon                    = []
 
-export
-renderDoc : UseColor -> Doc Markup -> String
-renderDoc usecol doc =
-  let stream = layoutSmart defaultLayoutOptions
-             $ indent 2 doc
+testCount : TestCount -> String
+testCount (MkTagged 1) = "1 test"
+testCount (MkTagged n) = show n ++ " tests"
 
-   in case usecol of
-           DisableColor => Str.renderString stream
-           EnableColor  => Term.renderString $ reAnnotateS toAnsi stream
+shrinkCount : ShrinkCount -> String
+shrinkCount (MkTagged 1) = "1 shrink"
+shrinkCount (MkTagged n) = show n ++ " shrinks"
+
+%inline propertyCount : PropertyCount -> String
+propertyCount (MkTagged n) = show n
+
+renderCoverPercentage : CoverPercentage -> String
+renderCoverPercentage (MkTagged p) =
+  show (round {a = Double} (p * 10.0) / 10.0) ++ "%"
+
+labelWidth : TestCount -> Label CoverCount -> ColumnWidth
+labelWidth tests x =
+  let percentage :=
+        length . renderCoverPercentage $
+          coverPercentage tests x.labelAnnotation
+
+      minimum :=
+        if x.labelMinimum == 0
+          then the Nat 0
+          else length . renderCoverPercentage $ x.labelMinimum
+
+      name := length . unTag $ x.labelName
+
+      nameFail = if labelCovered tests x then the Nat 0 else name
+
+  in MkColumnWidth percentage minimum name nameFail
+
+coverageWidth : TestCount -> Coverage CoverCount -> ColumnWidth
+coverageWidth tests = concatMap (labelWidth tests) . labels
+
+full : Char
+full = '█'
+
+parts : List Char
+parts = ['·', '▏','▎','▍','▌','▋','▊','▉']
+
+parameters {opts : LayoutOpts} (useColor : UseColor)
+  markup : Markup -> Doc opts -> Doc opts
+  markup m d = case useColor of
+    DisableColor => d
+    EnableColor  => decorate (toAnsi m) d
+
+  %inline markupLine : Markup -> String -> Doc opts
+  markupLine m = markup m . line
+
+  gutter : Markup -> Doc opts -> Doc opts
+  gutter m x = markup m rangle <++> x
+
+  icon : Markup -> Char -> Doc opts -> Doc opts
+  icon m i x = markup m (symbol i) <++> x
+
+  lineDiff : LineDiff -> Doc opts
+  lineDiff (LineSame x)    = markup DiffSame    $ "  " <+> pretty x
+  lineDiff (LineRemoved x) = markup DiffRemoved $ "- " <+> pretty x
+  lineDiff (LineAdded x)   = markup DiffAdded   $ "+ " <+> pretty x
+
+  diff : Diff -> List (Doc opts)
+  diff (MkDiff pre removed inf added suffix df) =
+    ( markup DiffPrefix (pretty pre)      <+>
+      markup DiffRemoved (pretty removed) <+>
+      markup DiffInfix (pretty inf)       <+>
+      markup DiffAdded (pretty added)     <+>
+      markup DiffSuffix (pretty suffix)
+    ) :: map lineDiff (toLineDiff df)
+
+  reproduce : Maybe PropertyName -> Size -> Seed -> Doc opts
+  reproduce name size seed =
+    let prop  := maybe "<property>" unTag name
+        instr := "recheck \{showPrec App size} \{showPrec App seed} \{prop}"
+     in vsep [
+            markupLine ReproduceHeader "This failure can be reproduced by running:"
+          , gutter ReproduceGutter . markup ReproduceSource $ line instr
+          ]
+
+  textLines : String -> List (Doc opts)
+  textLines = map line . lines
+
+  failedInput : Nat -> FailedAnnotation -> Doc opts
+  failedInput ix (MkFailedAnnotation val) =
+    vsep [
+      line "forAll \{show ix} ="
+    , indent 2 . vsep . map (markup AnnotationValue . line) $ lines val
+    ]
+
+  failureReport :
+       Maybe PropertyName
+    -> TestCount
+    -> FailureReport
+    -> List (Doc opts)
+  failureReport nm tests (MkFailureReport si se _ mcover inputs msg mdiff msgs0) =
+    whenSome (empty ::)           .
+    whenSome (++ [empty])         .
+    intersperse empty             .
+    map (vsep . map (indent 2))   .
+    filter (\xs => not $ null xs) $
+    [intersperse empty args, coverage, docs, bottom]
+
+    where whenSome : Foldable t => (t a -> t a) -> t a -> t a
+          whenSome f xs = if null xs then xs else f xs
+
+          bottom : List (Doc opts)
+          bottom = maybe [reproduce nm si se] (const Nil) mcover
+
+          docs : List (Doc opts)
+          docs = concatMap textLines (msgs0 ++ if msg == "" then [] else [msg])
+               <+> maybe [] diff mdiff
+
+          args : List (Doc opts)
+          args = zipWith failedInput [0 .. length inputs] (reverse inputs)
+
+          coverage : List (Doc opts)
+          coverage =
+            case mcover of
+              Nothing => []
+              Just c  => do
+                MkLabel _ _ count <- coverageFailures tests c
+                pure $
+                      line "Failed ("
+                  <+> markupLine CoverageText
+                        (renderCoverPercentage (coverPercentage tests count))
+                  <+> " coverage)"
+
+  ppName : Maybe PropertyName -> Doc opts
+  ppName Nothing                = "<interactive>"
+  ppName (Just $ MkTagged name) = text name
+
+  leftPad : Nat -> Doc opts -> Doc opts
+  leftPad n doc = doc >>= \l => pure $ indent (n `minus` width l) l
+
+  coverBar : CoverPercentage -> CoverPercentage -> Doc opts
+  coverBar (MkTagged percentage) (MkTagged minimum) =
+    let barWidth         := the Nat 20
+        coverageRatio    := percentage / 100.0
+        coverageWidth    := toNat . floor $ coverageRatio * cast barWidth
+        minimumRatio     := minimum / 100.0
+        minimumWidth     := toNat . floor $ minimumRatio * cast barWidth
+        fillWidth        := barWidth `minus` S coverageWidth
+        fillErrorWidth   := minimumWidth `minus` S coverageWidth
+        fillSurplusWidth := fillWidth `minus` fillErrorWidth
+
+        ix               := toNat . floor $
+                            ((coverageRatio * cast barWidth) - cast coverageWidth)
+                            * cast (length parts)
+
+        part             := symbol $ case inBounds ix parts of
+                              Yes ib => index ix parts
+                              No  _  => head parts
+
+     in hcat [ line $ replicate coverageWidth full
+             , if coverageWidth < barWidth then
+                 if ix == 0 then
+                   if fillErrorWidth > 0 then markup FailedText part
+                   else markup CoverageFill part
+                 else part
+               else empty
+             , markupLine FailedText $ replicate fillErrorWidth (head parts)
+             , markupLine CoverageFill $ replicate fillSurplusWidth (head parts)
+             ]
+
+  label : TestCount -> ColumnWidth -> Label CoverCount -> Doc opts
+  label tests w x@(MkLabel name minimum count) =
+    let covered  = labelCovered tests x
+        ltext    = if not covered then markup CoverageText else id
+        lborder  = markup (StyledBorder StyleDefault)
+        licon    = if not covered then markup CoverageText "⚠ " else "  "
+        lname    = padRight (cast w.widthName) ' ' (unTag name)
+        wminimum = leftPad w.widthMinimum . line $ renderCoverPercentage minimum
+        lcover   = wcover
+
+        lminimum =
+          if w.widthMinimum == 0 then empty
+          else if not covered then " ✗ " <+> wminimum
+          else if minimum == 0 then "   " <+> leftPad w.widthMinimum ""
+          else " ✓ " <+> wminimum
+
+
+     in hcat [ licon
+             , ltext (line lname)
+             , lborder " "
+             , ltext lcover
+             , lborder " "
+             , ltext $ coverBar (coverPercentage tests count) minimum
+             , lborder ""
+             , ltext lminimum
+             ]
+
+
+    where wcover : Doc opts
+          wcover = leftPad w.widthPercentage . line $
+                   renderCoverPercentage (coverPercentage tests count)
+
+  coverage : TestCount -> Coverage CoverCount -> List (Doc opts)
+  coverage tests x = map (label tests (coverageWidth tests x)) $ labels x
+
+  whenNonZero : Doc opts -> PropertyCount -> Maybe (Doc opts)
+  whenNonZero _      0 = Nothing
+  whenNonZero suffix n = Just $ line (propertyCount n) <++> suffix
+
+  export
+  ppProgress : Maybe PropertyName -> Report Progress -> Doc opts
+  ppProgress name (MkReport tests cov status) =
+    case status of
+       Running =>
+         vsep $ [ icon RunningIcon '●' . markup RunningHeader $
+                  ppName name <++> line "passed \{testCount tests} (running)"
+                ] ++ coverage tests cov
+
+       Shrinking failure =>
+         icon ShrinkingIcon '↯' . markup ShrinkingHeader $
+           ppName name <++> line "failed after \{testCount tests}"
+
+  annotateSummary : Summary -> Doc opts -> Doc opts
+  annotateSummary summary =
+    if summary.failed > 0 then
+      icon FailedIcon '✗' . markup FailedText
+    else if summary.waiting > 0 || summary.running > 0 then
+      icon WaitingIcon '○' . markup WaitingHeader
+    else
+      icon SuccessIcon '✓' . markup SuccessText
+
+  ppResult : Maybe PropertyName -> Report Result -> Doc opts
+  ppResult name (MkReport tests cov result) =
+    case result of
+      Failed failure =>
+        vsep $ [ icon FailedIcon '✗' . markup FailedText $
+                 ppName name <++>
+                 line "failed after \{testCount tests}."
+               ] ++
+               coverage tests cov ++
+               failureReport name tests failure
+
+      OK => vsep $ [ icon SuccessIcon '✓' . markup SuccessText $
+                     ppName name <++> line "passed \{testCount tests}."
+                   ] ++
+                   coverage tests cov
+
+  export
+  ppSummary : Summary -> Doc opts
+  ppSummary summary =
+    let complete = summaryCompleted summary == summaryTotal summary
+        suffix = if complete then line "." else line " (running)"
+
+     in annotateSummary summary .
+        (<+> suffix) .
+        hcat .
+        addPrefix complete .
+        intersperse (line ", ") $
+        catMaybes [
+            whenNonZero "failed" summary.failed
+          , if complete then
+              whenNonZero "succeeded" summary.ok
+            else
+              Nothing
+        ]
+
+    where doPrefix : Bool -> Doc opts -> Doc opts
+          doPrefix True _    = empty
+          doPrefix False end =
+            let pc1 := propertyCount (summaryCompleted summary)
+                pc2 := propertyCount (summaryTotal summary)
+             in line "\{pc1} / \{pc2} complete" <+> end
+
+          addPrefix : Bool -> List (Doc opts) -> List (Doc opts)
+          addPrefix complete [] = [doPrefix complete empty]
+          addPrefix complete xs = doPrefix complete ": " :: xs
+
+public export
+LL80 : LayoutOpts
+LL80 = Opts 80
+
+export
+renderDoc : Doc LL80 -> String
+renderDoc = render LL80 . indent 2
 
 export
 renderProgress : UseColor -> Maybe PropertyName -> Report Progress -> String
-renderProgress color name = renderDoc color . ppProgress name
+renderProgress color name = renderDoc . ppProgress color name
 
 export
 renderResult : UseColor -> Maybe PropertyName -> Report Result -> String
-renderResult color name = renderDoc color . ppResult name
+renderResult color name = renderDoc . ppResult color name
 
 export
 renderSummary : UseColor -> Summary -> String
-renderSummary color = renderDoc color . ppSummary
+renderSummary color = renderDoc . ppSummary color
 
 --------------------------------------------------------------------------------
 --          Test Report

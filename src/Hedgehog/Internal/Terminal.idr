@@ -1,6 +1,6 @@
 module Hedgehog.Internal.Terminal
 
-import Control.ANSI.CSI
+import Text.ANSI.CSI
 import Data.IORef
 import Data.List1
 import Data.String
