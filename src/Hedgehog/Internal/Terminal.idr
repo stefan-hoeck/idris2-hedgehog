@@ -18,8 +18,9 @@ putStrErr s = fPutStr stderr s $> ()
 
 export
 console : HasIO io => io Terminal
-console = do ref <- newIORef []
-             pure $ MkTerminal ref putStr putStrErr
+console = do
+  ref <- newIORef []
+  pure $ MkTerminal ref putStr putStrErr
 
 clearTmp : Terminal -> IO ()
 clearTmp t = do ls <- readIORef t.tmp
@@ -32,9 +33,9 @@ putTmp t str =
   let ls = lines str
    in liftIO $ do clearTmp t
                   writeIORef t.tmp ls
-                  t.err (str <+> "\n")
+                  t.err str
 
 export
 putOut : HasIO io => Terminal -> String -> io ()
 putOut t str = liftIO $ do clearTmp t
-                           t.out (str <+> "\n")
+                           t.out str
