@@ -292,20 +292,20 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
 
   diff : Diff -> List (Doc opts)
   diff (MkDiff pre removed inf added suffix df) =
-    ( markup DiffPrefix (pretty pre)      <+>
-      markup DiffRemoved (pretty removed) <+>
-      markup DiffInfix (pretty inf)       <+>
-      markup DiffAdded (pretty added)     <+>
-      markup DiffSuffix (pretty suffix)
+    ( markup DiffPrefix (line pre)      <+>
+      markup DiffRemoved (line removed) <+>
+      markup DiffInfix (line inf)       <+>
+      markup DiffAdded (line added)     <+>
+      markup DiffSuffix (line suffix)
     ) :: map lineDiff (toLineDiff df)
 
   reproduce : Maybe PropertyName -> Size -> Seed -> Doc opts
   reproduce name size seed =
-    let prop  := maybe "<property>" unTag name
-        instr := "recheck \{showPrec App size} \{showPrec App seed} \{prop}"
+    let prop  := line $ maybe "<property>" unTag name
+        instr := prettyCon Open "recheck" [prettyArg size, prettyArg seed, prop]
      in vsep [
             markupLine ReproduceHeader "This failure can be reproduced by running:"
-          , gutter ReproduceGutter . markup ReproduceSource $ line instr
+          , gutter ReproduceGutter $ markup ReproduceSource instr
           ]
 
   textLines : String -> List (Doc opts)

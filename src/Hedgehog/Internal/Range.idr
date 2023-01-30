@@ -5,6 +5,7 @@ import Data.Fin
 import Data.Maybe
 import Decidable.Equality
 import Derive.Prelude
+import Derive.Pretty
 
 import Hedgehog.Internal.Util
 
@@ -29,6 +30,10 @@ record Size where
   0 sizeOk : size <= MaxSizeNat = True
 
 %runElab derive "Size" [Show,Eq,Ord]
+
+export
+Pretty Size where
+  prettyPrec _ (MkSize n _) = line $ show n
 
 public export
 mkSize : (n : Nat) -> {auto 0 ok : n <= MaxSizeNat = True} -> Size
