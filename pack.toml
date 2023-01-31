@@ -31,27 +31,3 @@ type   = "git"
 url    = "https://github.com/stefan-hoeck/idris2-elab-util"
 commit = "latest:prettier"
 ipkg   = "elab-pretty.ipkg"
-
-[custom.all.parser]
-type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-parser"
-commit = "latest:main"
-ipkg   = "parser.ipkg"
-
-[custom.all.ansi]
-type   = "git"
-url    = "https://github.com/idris-community/idris2-ansi"
-commit = "latest:main"
-ipkg   = "ansi.ipkg"
-
-[custom.all.prettier-ansi]
-type   = "git"
-url    = "https://github.com/idris-community/idris2-ansi"
-commit = "latest:main"
-ipkg   = "prettier/prettier-ansi.ipkg"
-
-[custom.all.getopts]
-type   = "git"
-url    = "https://github.com/idris-community/idris2-getopts"
-commit = "latest:main"
-ipkg   = "getopts.ipkg"
