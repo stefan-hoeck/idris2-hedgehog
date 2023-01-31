@@ -128,9 +128,9 @@ toks (TR l c st _ _ _) = st <>> []
 export
 lexSmiles1 : (s : String) -> List (Bounded Token)
 lexSmiles1 s = toks $ lex (Match
-  [ (pred isLower <|> (pred isUpper <+> opt (pred isLower)), organic . pack)
-  , (oneOf (unpack "-=#"), bond . pack)
-  , (digit <|> (is '%' <+> digit <+> digit), ring . pack)
+  [ (pred isLower <|> (pred isUpper <+> opt (pred isLower)), organic . cast)
+  , (oneOf (unpack "-=#"), bond . cast)
+  , (digit <|> (is '%' <+> digit <+> digit), ring . cast)
   , (is '(', const POpen)
   , (is ')', const PClose)
   ]) s
@@ -226,9 +226,9 @@ checking `prop_lex`:
 ```idris
 lexSmiles : (s : String) -> List (Bounded Token)
 lexSmiles s = toks $lex (Match
-  [ (exact "Cl" <|> exact "Br" <|> pred isAlpha, organic . pack)
-  , (oneOf (unpack "-=#"), bond . pack)
-  , (digit <|> (is '%' <+> digit <+> digit), ring . pack)
+  [ (exact "Cl" <|> exact "Br" <|> pred isAlpha, organic . cast)
+  , (oneOf (unpack "-=#"), bond . cast)
+  , (digit <|> (is '%' <+> digit <+> digit), ring . cast)
   , (is '(', const POpen)
   , (is ')', const PClose)
   ]) s
