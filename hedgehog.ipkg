@@ -6,9 +6,10 @@ version    = 0.6.0
 sourcedir  = "src"
 depends    = base         >= 0.6.0
            , ansi
-           , prettier-ansi
-           , getopts
+           , elab-pretty
            , elab-util
+           , getopts
+           , prettier-ansi
            , pretty-show
            , sop
 
