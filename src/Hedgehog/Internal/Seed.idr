@@ -5,6 +5,7 @@ import Data.Bits
 import Data.DPair
 import Data.Fin
 import Derive.Prelude
+import Derive.Pretty
 
 %default total
 
@@ -82,7 +83,7 @@ two64 = 1 `shiftL` 64
 public export
 data Seed = MkSeed Bits64 Bits64
 
-%runElab derive "Seed" [Eq,Show]
+%runElab derive "Seed" [Eq,Show,Pretty]
 
 ||| Create an Seed from the given seed.
 export

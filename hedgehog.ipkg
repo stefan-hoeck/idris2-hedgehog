@@ -5,8 +5,11 @@ brief      = "A property based testing library with integrated shrinking"
 version    = 0.6.0
 sourcedir  = "src"
 depends    = base         >= 0.6.0
-           , contrib
+           , ansi
+           , elab-pretty
            , elab-util
+           , getopts
+           , prettier-ansi
            , pretty-show
            , sop
 

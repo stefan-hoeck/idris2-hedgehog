@@ -191,7 +191,7 @@ export
 checkGroup : HasIO io => Group -> io Bool
 checkGroup (MkGroup group props) =
   do term    <- console
-     putOut term $ "━━━ " ++ unTag group ++ " ━━━"
+     putOut term $ "━━━ " ++ unTag group ++ " ━━━\n"
      color   <- detectColor
      summary <- liftIO $ checkGroupWith term color props
      putOut term (renderSummary color summary)

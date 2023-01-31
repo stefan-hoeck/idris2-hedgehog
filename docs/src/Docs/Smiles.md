@@ -16,7 +16,7 @@ import Data.String
 import Data.Cotree
 import Data.Vect
 import Derive.Prelude
-import Text.Lexer
+import Text.Lex
 
 import Hedgehog
 
@@ -122,14 +122,18 @@ ring s = case fastUnpack s of
   where calc : Char -> Int
         calc c = ord c - 48
 
+toks : TokRes b cs StopReason a -> List (Bounded a)
+toks (TR l c st _ _ _) = st <>> []
+
 export
-lexSmiles1 : String -> (List (WithBounds Token), (Int,Int,String))
-lexSmiles1 = lex [ (lower <|> (upper <+> opt lower), organic)
-                 , (oneOf "-=#", bond)
-                 , (digit <|> (is '%' <+> digit <+> digit), ring)
-                 , (is '(', const POpen)
-                 , (is ')', const PClose)
-                 ]
+lexSmiles1 : (s : String) -> List (Bounded Token)
+lexSmiles1 s = toks $ lex (Match
+  [ (pred isLower <|> (pred isUpper <+> opt (pred isLower)), organic . pack)
+  , (oneOf (unpack "-=#"), bond . pack)
+  , (digit <|> (is '%' <+> digit <+> digit), ring . pack)
+  , (is '(', const POpen)
+  , (is ')', const PClose)
+  ]) s
 ```
 
 ## Testing the Lexer
@@ -178,7 +182,7 @@ prop_lex1 = property $ do ts <- forAll tokens
                               enc = concatMap encode ts
 
                               lexed : List Token
-                              lexed = map val . fst $ lexSmiles1 enc
+                              lexed = map val $ lexSmiles1 enc
 
                           footnote $ "Encoded: " ++ enc
                           lexed === ts
@@ -220,13 +224,14 @@ The following version fixes this issue, as can be shown by
 checking `prop_lex`:
 
 ```idris
-lexSmiles : String -> (List (WithBounds Token), (Int,Int,String))
-lexSmiles = lex [ (exact "Cl" <|> exact "Br" <|> alpha, organic)
-                , (oneOf "-=#", bond)
-                , (digit <|> (is '%' <+> digit <+> digit), ring)
-                , (is '(', const POpen)
-                , (is ')', const PClose)
-                ]
+lexSmiles : (s : String) -> List (Bounded Token)
+lexSmiles s = toks $lex (Match
+  [ (exact "Cl" <|> exact "Br" <|> pred isAlpha, organic . pack)
+  , (oneOf (unpack "-=#"), bond . pack)
+  , (digit <|> (is '%' <+> digit <+> digit), ring . pack)
+  , (is '(', const POpen)
+  , (is ')', const PClose)
+  ]) s
 
 prop_lex : Property
 prop_lex = property $ do ts <- forAll tokens
@@ -235,7 +240,7 @@ prop_lex = property $ do ts <- forAll tokens
                              enc = concatMap encode ts
 
                              lexed : List Token
-                             lexed = map val . fst $ lexSmiles enc
+                             lexed = map val $ lexSmiles enc
 
                          footnote $ "Encoded: " ++ enc
                          lexed === ts

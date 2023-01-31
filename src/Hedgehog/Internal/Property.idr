@@ -6,7 +6,6 @@ import Control.Monad.Trans
 import Control.Monad.Writer
 import Data.DPair
 import Data.Lazy
-import Data.SortedMap
 import Derive.Prelude
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Util
@@ -229,26 +228,62 @@ record Failure where
 |||
 ||| When a given classification's coverage does not exceed the required/
 ||| minimum, the test will be failed.
-public export
+export
 record Coverage a where
   constructor MkCoverage
-  coverageLabels : SortedMap LabelName (Label a)
+  coverageLabels : List (LabelName, Label a)
 
-%runElab derive "Coverage" [Show,Eq,Semigroup,Monoid]
+%runElab derive "Coverage" [Show,Eq]
+
+export %inline
+names : Coverage a -> List LabelName
+names = map fst . coverageLabels
+
+export %inline
+labels : Coverage a -> List (Label a)
+labels = map snd . coverageLabels
+
+export %inline
+annotations : Coverage a -> List a
+annotations = map (labelAnnotation . snd) . coverageLabels
+
+mergeWith :
+     Ord k
+  => SnocList (k,v)
+  -> (v -> v -> v)
+  -> List (k,v)
+  -> List (k,v)
+  -> List (k,v)
+mergeWith sp _ [] ys               = sp <>> ys
+mergeWith sp _ xs []               = sp <>> xs
+mergeWith sp f (x :: xs) (y :: ys) = case compare (fst x) (fst y) of
+  LT => mergeWith (sp :< x) f xs (y :: ys)
+  EQ => mergeWith (sp :< (fst x, f (snd x) (snd y))) f xs ys
+  GT => mergeWith (sp :< y) f (x::xs) ys
+
+export %inline
+Semigroup a => Semigroup (Coverage a) where
+  MkCoverage x <+> MkCoverage y =
+    MkCoverage $ mergeWith [<] (<+>) x y
+
+export %inline
+Semigroup a => Monoid (Coverage a) where
+  neutral = MkCoverage []
 
 export
 Functor Coverage where
-  map f = {coverageLabels $= map (map f) }
+  map f = {coverageLabels $= map (mapSnd $ map f) }
 
 export
 Foldable Coverage where
-  foldl f acc (MkCoverage sm) = foldl (foldl f) acc sm
-  foldr f acc (MkCoverage sm) = foldr (\l,a => foldr f a l) acc sm
+  foldl f acc = foldl f acc . annotations
+  foldr f acc = foldr f acc . annotations
   null = null . coverageLabels
 
 export
 Traversable Coverage where
-  traverse f (MkCoverage sm) = MkCoverage <$> traverse (traverse f) sm
+  traverse f (MkCoverage sm) =
+    MkCoverage <$> traverse ((traverse . traverse) f) sm
 
 --------------------------------------------------------------------------------
 --          Config
@@ -339,30 +374,30 @@ failWith diff msg = mkTestT $ pure (Left $ MkFailure msg diff, neutral)
 
 ||| Annotates the source code with a message that might be useful for
 ||| debugging a test failure.
-export
+export %inline
 annotate : Applicative m => Lazy String -> TestT m ()
 annotate v = writeLog $ Annotation v
 
 ||| Annotates the source code with a value that might be useful for
 ||| debugging a test failure.
-export covering
+export %inline
 annotateShow : (Applicative m, Show a) => a -> TestT m ()
 annotateShow v = annotate $ ppShow v
 
 ||| Logs a message to be displayed as additional information in the footer of
 ||| the failure report.
-export
+export %inline
 footnote : Applicative m => Lazy String -> TestT m ()
 footnote v = writeLog $ Footnote v
 
 ||| Logs a value to be displayed as additional information in the footer of
 ||| the failure report.
-export covering
+export %inline
 footnoteShow : (Applicative m, Show a) => a -> TestT m ()
 footnoteShow v = writeLog (Footnote $ ppShow v)
 
 ||| Fails with an error that shows the difference between two values.
-export covering
+export %inline
 failDiff : (Applicative m, Show a, Show b) => a -> b -> TestT m ()
 failDiff x y =
   case valueDiff <$> reify x <*> reify y of
@@ -385,17 +420,17 @@ failDiff x y =
           MkDiff "━━━ Failed (" "- lhs" ") (" "+ rhs" ") ━━━" vdiff) ""
 
 ||| Causes a test to fail.
-export
+export %inline
 failure : Applicative m => TestT m a
 failure = failWith Nothing ""
 
 ||| Another name for `pure ()`.
-export
+export %inline
 success : Monad m => TestT m ()
 success = pure ()
 
 ||| Fails the test if the condition provided is 'False'.
-export
+export %inline
 assert : Monad m => Bool -> TestT m ()
 assert ok = if ok then success else failure
 
@@ -411,30 +446,29 @@ assert ok = if ok then success else failure
 ||| otherwise. Like unix @diff@, if the arguments fail the comparison, a
 ||| /diff is shown.
 |||
-export covering
+export %inline
 diff :  (Monad m, Show a, Show b)
      => a -> (a -> b -> Bool) -> b -> TestT m ()
-diff x op y = if x `op` y then success
-                          else failDiff x y
+diff x op y = if x `op` y then success else failDiff x y
 
 infix 4 ===
 
 ||| Fails the test if the two arguments provided are not equal.
-export covering
+export %inline
 (===) : (Monad m, Eq a, Show a) => a -> a -> TestT m ()
 (===) x y = diff x (==) y
 
 infix 4 /==
 
 ||| Fails the test if the two arguments provided are equal.
-export covering
+export %inline
 (/==) : (Monad m, Eq a, Show a) => a -> a -> TestT m ()
 (/==) x y = diff x (/=) y
 
 
 ||| Fails the test if the 'Either' is 'Left', otherwise returns the value in
 ||| the 'Right'.
-export covering
+export
 evalEither : (Monad m, Show x) => Either x a -> TestT m a
 evalEither (Left x)  = failWith Nothing (ppShow x)
 evalEither (Right x) = pure x
@@ -468,7 +502,7 @@ forAllWith render gen = do x <- lift (lift gen)
                            pure x
 
 ||| Generates a random input for the test by running the provided generator.
-export covering
+export %inline
 forAll : Show a => Gen a -> PropertyT a
 forAll = forAllWith ppShow
 
@@ -602,8 +636,8 @@ labelCovered tests (MkLabel _ min population) =
 
 export
 coverageFailures : TestCount -> Coverage CoverCount -> List $ Label CoverCount
-coverageFailures tests (MkCoverage kvs) =
-  filter (not . labelCovered tests) (values kvs)
+coverageFailures tests kvs =
+  filter (not . labelCovered tests) (labels kvs)
 
 ||| All labels are covered
 export
@@ -659,7 +693,7 @@ collect x = cover 0 (MkTagged $ show x) True
 
 
 fromLabel : Label a -> Coverage a
-fromLabel x = MkCoverage $ singleton (labelName x) x
+fromLabel x = MkCoverage $ [(labelName x, x)]
 
 unionsCoverage : Semigroup a => List (Coverage a) -> Coverage a
 unionsCoverage = MkCoverage . concatMap coverageLabels
@@ -721,7 +755,7 @@ boundsForLabel (MkTagged tests) (MkConfidence c ib) lbl =
 export
 confidenceSuccess : TestCount -> Confidence -> Coverage CoverCount -> Bool
 confidenceSuccess tests confidence =
-  all assertLow . values . coverageLabels
+  all assertLow . labels
   where assertLow : Label CoverCount -> Bool
         assertLow cc =
           fst (boundsForLabel tests confidence cc) >=
@@ -732,7 +766,7 @@ confidenceSuccess tests confidence =
 export
 confidenceFailure : TestCount -> Confidence -> Coverage CoverCount -> Bool
 confidenceFailure tests confidence =
-  any assertHigh . values . coverageLabels
+  any assertHigh . labels
   where assertHigh : Label CoverCount -> Bool
         assertHigh cc =
           snd (boundsForLabel tests confidence cc) <
