@@ -288,3 +288,6 @@ The output will look similar to this:
 >   [10,100)    9.1% █▊·················· ✓  5.0%
 >   [100,1000] 89.9% █████████████████▉·· ✓ 80.0%
 ```
+
+<!-- vi: filetype=idris2:syntax=markdown
+-->
