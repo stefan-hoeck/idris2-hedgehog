@@ -122,18 +122,18 @@ ring s = case fastUnpack s of
   where calc : Char -> Int
         calc c = ord c - 48
 
-toks : TokRes b cs StopReason a -> List (Bounded a)
-toks (TR l c st _ _ _) = st <>> []
-
-export
-lexSmiles1 : (s : String) -> List (Bounded Token)
-lexSmiles1 s = toks $ lex (Match
+smiles1 : Tokenizer Char Token
+smiles1 = Direct $ first
   [ (pred isLower <|> (pred isUpper <+> opt (pred isLower)), organic . cast)
   , (oneOf (unpack "-=#"), bond . cast)
   , (digit <|> (is '%' <+> digit <+> digit), ring . cast)
   , (is '(', const POpen)
   , (is ')', const PClose)
-  ]) s
+  ]
+
+export
+lexSmiles1 : (s : String) -> List (Bounded Token)
+lexSmiles1 s = (<>> []) . toks $ lex smiles1 s
 ```
 
 ## Testing the Lexer
@@ -224,14 +224,17 @@ The following version fixes this issue, as can be shown by
 checking `prop_lex`:
 
 ```idris
-lexSmiles : (s : String) -> List (Bounded Token)
-lexSmiles s = toks $lex (Match
+smiles : Tokenizer Char Token
+smiles = Direct $ first
   [ (exact "Cl" <|> exact "Br" <|> pred isAlpha, organic . cast)
   , (oneOf (unpack "-=#"), bond . cast)
   , (digit <|> (is '%' <+> digit <+> digit), ring . cast)
   , (is '(', const POpen)
   , (is ')', const PClose)
-  ]) s
+  ]
+
+lexSmiles : (s : String) -> List (Bounded Token)
+lexSmiles s = (<>> []) . toks $ lex smiles s
 
 prop_lex : Property
 prop_lex = property $ do ts <- forAll tokens
@@ -245,3 +248,6 @@ prop_lex = property $ do ts <- forAll tokens
                          footnote $ "Encoded: " ++ enc
                          lexed === ts
 ```
+
+<!-- vi: filetype=idris2:syntax=markdown
+-->
