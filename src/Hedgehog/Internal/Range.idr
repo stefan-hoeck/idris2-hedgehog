@@ -179,7 +179,7 @@ constant x y = constantFrom x x y
 ||| >>> origin (constantBounded :: Range Int8)
 ||| 0
 export
-constantBounded : (MinBound a, MaxBound a, Num a) => Range a
+constantBounded : (MinBound a, MaxBound a) => Num a => Range a
 constantBounded = constantFrom 0 minBound maxBound
 
 --------------------------------------------------------------------------------
@@ -210,7 +210,7 @@ scaleLinear sz o0 b0 =
 
 ||| Scales a fractional value linearly with the size parameter.
 export
-scaleLinearFrac :  (Neg a, Fractional a) => Size -> (origin,bound : a) -> a
+scaleLinearFrac : Fractional a => Neg a => Size -> (origin,bound : a) -> a
 scaleLinearFrac sz o b =
   let diff = (b - o) * (fromIntegral sz / 100)
    in o + diff
@@ -252,7 +252,9 @@ linearFin n = map toFin $ linearFrom 0 0 (natToInteger n)
 |||
 ||| This works the same as 'linearFrom', but for fractional values.
 export
-linearFracFrom :  (Neg a, Ord a, Fractional a)
+linearFracFrom :  Ord a
+               => Fractional a
+               => Neg a
                => (origin,lower,uppder : a) -> Range a
 linearFracFrom = scaled scaleLinearFrac
 
@@ -268,7 +270,7 @@ linearFracFrom = scaled scaleLinearFrac
 ||| >>> bounds 99 (linearBounded :: Range Int8)
 |||   (-128,127)
 export
-linearBounded :  (MinBound a, MaxBound a, Ord a, ToInteger a) => Range a
+linearBounded :  (MinBound a, MaxBound a) => Ord a => ToInteger a => Range a
 linearBounded = linearFrom minBound minBound maxBound
 
 --------------------------------------------------------------------------------
