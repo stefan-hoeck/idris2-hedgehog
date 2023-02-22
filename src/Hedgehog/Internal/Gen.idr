@@ -574,7 +574,7 @@ printWith si se gen = let (MkCotree v fo) = runGen si se gen
 |||   > 'b'
 |||   > 'c'
 export
-print : (HasIO io, Show a) => Gen a -> io ()
+print : Show a => HasIO io => Gen a -> io ()
 print gen = initSMGen >>= \se => printWith 100 se gen
 
 ||| Generate a sample from a generator.
@@ -602,7 +602,8 @@ renderTree md mw si se = drawTree
 |||
 ||| Use 'printTree' to generate a value from a random seed.
 export
-printTreeWith :  (HasIO io, Show a)
+printTreeWith :  Show a
+              => HasIO io
               => (maxDepth : Nat)
               -> (maxWidth : Nat)
               -> Size
@@ -629,7 +630,8 @@ printTreeWith md mw si se = putStrLn . renderTree md mw si se
 |||   /This may not terminate when the tree is very large./
 |||
 export
-printTree :  (HasIO io, Show a)
+printTree :  Show a
+          => HasIO io
           => (maxDepth : Nat)
           -> (maxWidth : Nat)
           -> Gen a

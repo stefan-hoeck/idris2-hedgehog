@@ -381,7 +381,7 @@ annotate v = writeLog $ Annotation v
 ||| Annotates the source code with a value that might be useful for
 ||| debugging a test failure.
 export %inline
-annotateShow : (Applicative m, Show a) => a -> TestT m ()
+annotateShow : Show a => Applicative m => a -> TestT m ()
 annotateShow v = annotate $ ppShow v
 
 ||| Logs a message to be displayed as additional information in the footer of
@@ -393,12 +393,12 @@ footnote v = writeLog $ Footnote v
 ||| Logs a value to be displayed as additional information in the footer of
 ||| the failure report.
 export %inline
-footnoteShow : (Applicative m, Show a) => a -> TestT m ()
+footnoteShow : Show a => Applicative m => a -> TestT m ()
 footnoteShow v = writeLog (Footnote $ ppShow v)
 
 ||| Fails with an error that shows the difference between two values.
 export %inline
-failDiff : (Applicative m, Show a, Show b) => a -> b -> TestT m ()
+failDiff : Show a => Show b => Applicative m => a -> b -> TestT m ()
 failDiff x y =
   case valueDiff <$> reify x <*> reify y of
     Nothing =>
@@ -447,7 +447,9 @@ assert ok = if ok then success else failure
 ||| /diff is shown.
 |||
 export %inline
-diff :  (Monad m, Show a, Show b)
+diff :  Show a
+     => Show b
+     => Monad m
      => a -> (a -> b -> Bool) -> b -> TestT m ()
 diff x op y = if x `op` y then success else failDiff x y
 
@@ -455,21 +457,21 @@ infix 4 ===
 
 ||| Fails the test if the two arguments provided are not equal.
 export %inline
-(===) : (Monad m, Eq a, Show a) => a -> a -> TestT m ()
+(===) : Eq a => Show a => Monad m => a -> a -> TestT m ()
 (===) x y = diff x (==) y
 
 infix 4 /==
 
 ||| Fails the test if the two arguments provided are equal.
 export %inline
-(/==) : (Monad m, Eq a, Show a) => a -> a -> TestT m ()
+(/==) : Eq a => Show a => Monad m => a -> a -> TestT m ()
 (/==) x y = diff x (/=) y
 
 
 ||| Fails the test if the 'Either' is 'Left', otherwise returns the value in
 ||| the 'Right'.
 export
-evalEither : (Monad m, Show x) => Either x a -> TestT m a
+evalEither : Show x => Monad m => Either x a -> TestT m a
 evalEither (Left x)  = failWith Nothing (ppShow x)
 evalEither (Right x) = pure x
 
@@ -688,7 +690,7 @@ label name = cover 0 name True
 
 ||| Like 'label', but uses 'Show' to render its argument for display.
 export
-collect : (Monad m, Show a) => a -> TestT m ()
+collect : Show a => Monad m => a -> TestT m ()
 collect x = cover 0 (MkTagged $ show x) True
 
 
