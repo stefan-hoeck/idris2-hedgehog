@@ -453,7 +453,7 @@ diff :  Show a
      => a -> (a -> b -> Bool) -> b -> TestT m ()
 diff x op y = if x `op` y then success else failDiff x y
 
-infix 4 ===
+infix 6 ===
 
 ||| Fails the test if the two arguments provided are not equal.
 export %inline
