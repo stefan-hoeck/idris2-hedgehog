@@ -1,5 +1,6 @@
 module Hedgehog.Internal.Gen
 
+import Data.Bounded
 import Data.Colist
 import Data.Cotree
 import Data.Fin
@@ -191,12 +192,26 @@ public export %inline
 int8 : Range Int8 -> Gen Int8
 int8 = integral
 
+||| Generates a random 8-bit integer in the full available range.
+|||
+||| This shrinks exponentially towards 0.
+public export %inline
+anyInt8 : Gen Int8
+anyInt8 = int8 (exponentialFrom 0 minBound maxBound)
+
 ||| Generates a random 16-bit integer in the given range.
 |||
 ||| This is a specialization of `integral`, offered for convenience.
 public export %inline
 int16 : Range Int16 -> Gen Int16
 int16 = integral
+
+||| Generates a random 16-bit integer in the full available range.
+|||
+||| This shrinks exponentially towards 0.
+public export %inline
+anyInt16 : Gen Int16
+anyInt16 = int16 (exponentialFrom 0 minBound maxBound)
 
 ||| Generates a random 32-bit integer in the given range.
 |||
@@ -205,12 +220,26 @@ public export %inline
 int32 : Range Int32 -> Gen Int32
 int32 = integral
 
+||| Generates a random 32-bit integer in the full available range.
+|||
+||| This shrinks exponentially towards 0.
+public export %inline
+anyInt32 : Gen Int32
+anyInt32 = int32 (exponentialFrom 0 minBound maxBound)
+
 ||| Generates a random 64-bit integer in the given range.
 |||
 ||| This is a specialization of `integral`, offered for convenience.
 public export %inline
 int64 : Range Int64 -> Gen Int64
 int64 = integral
+
+||| Generates a random 64-bit integer in the full available range.
+|||
+||| This shrinks exponentially towards 0.
+public export %inline
+anyInt64 : Gen Int64
+anyInt64 = int64 (exponentialFrom 0 minBound maxBound)
 
 ||| Generates a random 8-bit integer in the given range.
 |||
@@ -219,12 +248,26 @@ public export %inline
 bits8 : Range Bits8 -> Gen Bits8
 bits8 = integral
 
+||| Generates a random 8-bit signed integer in the full available range.
+|||
+||| This shrinks exponentially towards 0.
+public export %inline
+anyBits8 : Gen Bits8
+anyBits8 = bits8 (exponential 0 maxBound)
+
 ||| Generates a random 16-bit integer in the given range.
 |||
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 bits16 : Range Bits16 -> Gen Bits16
 bits16 = integral
+
+||| Generates a random 16-bit signed integer in the full available range.
+|||
+||| This shrinks exponentially towards 0.
+public export %inline
+anyBits16 : Gen Bits16
+anyBits16 = bits16 (exponential 0 maxBound)
 
 ||| Generates a random 32-bit integer in the given range.
 |||
@@ -233,12 +276,26 @@ public export %inline
 bits32 : Range Bits32 -> Gen Bits32
 bits32 = integral
 
+||| Generates a random 32-bit signed integer in the full available range.
+|||
+||| This shrinks exponentially towards 0.
+public export %inline
+anyBits32 : Gen Bits32
+anyBits32 = bits32 (exponential 0 maxBound)
+
 ||| Generates a random 64-bit integer in the given range.
 |||
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 bits64 : Range Bits64 -> Gen Bits64
 bits64 = integral
+
+||| Generates a random 64-bit signed integer in the full available range.
+|||
+||| This shrinks exponentially towards 0.
+public export %inline
+anyBits64 : Gen Bits64
+anyBits64 = bits64 (exponential 0 maxBound)
 
 ||| Generates a random Integer in the given range.
 |||
@@ -448,6 +505,20 @@ unicode = frequency [ (55296, charc '\0' '\55295')
                     , (8190, charc '\57344' '\65533')
                     , (1048576, charc '\65536' '\1114111')
                     ]
+
+||| Generates a printable Unicode character, excluding noncharacters
+||| and invalid standalone surrogates:
+||| `'\0'..'\1114111'` (excluding '\0' .. '\31', '\127' .. '\159',
+||| '\55296'..'\57343', and '\65534', '\65535')`
+export %inline
+printableUnicode : Gen Char
+printableUnicode =
+  frequency
+    [ (95, printableAscii)
+    , (55136, charc '\160' '\55295')
+    , (8190, charc '\57344' '\65533')
+    , (1048576, charc '\65536' '\1114111')
+    ]
 
 ||| Generates a Unicode character, including noncharacters
 ||| and invalid standalone surrogates: `'\0'..'\1114111'`
