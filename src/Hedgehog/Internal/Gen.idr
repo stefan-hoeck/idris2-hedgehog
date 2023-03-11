@@ -452,7 +452,7 @@ digit = charc '0' '9'
 ||| Generates an ASCII hexit: `'0'..'9', 'a'..'f', 'A'..'F'`
 export %inline
 hexit : Gen Char
-hexit = frequency [(10, digit),(6, charc 'a' 'z'),(6, charc 'A' 'Z')]
+hexit = frequency [(10, digit),(6, charc 'a' 'f'),(6, charc 'A' 'F')]
 
 ||| Generates an ASCII lowercase letter: `'a'..'z'`
 export %inline
