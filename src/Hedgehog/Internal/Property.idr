@@ -582,6 +582,16 @@ export
 property : PropertyT () -> Property
 property = MkProperty defaultConfig
 
+||| Creates a property, that is tested exactly once.
+|||
+||| Use this for tests that are not based on randomly generated
+||| inputs.
+|||
+||| This is an alias for `withTests 1 . property`.
+export %inline
+property1 : PropertyT () -> Property
+property1 = withTests 1 . property
+
 ||| A named collection of property tests.
 public export
 record Group where
