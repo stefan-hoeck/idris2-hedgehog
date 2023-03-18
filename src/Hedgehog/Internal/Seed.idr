@@ -92,6 +92,14 @@ smGen s = MkSeed (mix64 s) (mixGamma (s + goldenGamma))
 
 %foreign "scheme:blodwen-random"
          "javascript:lambda:x=>BigInt(Math.floor(Math.random() * Number(x)))"
+         """
+         go:
+         import "math/rand"
+
+         func (max, world any) uint64 {
+           return uint64(rand.Float64() * float64(max.(uint64)))
+         }
+         """
 prim__random_Bits64 : Bits64 -> PrimIO Bits64
 
 ||| Initialize 'SMGen' using entropy available on the system (time, ...)
