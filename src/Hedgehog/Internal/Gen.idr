@@ -141,6 +141,15 @@ integral_ range = generate $ \si,se =>
     let (x, y) = bounds si range
      in fromInteger . fst $ nextIntegerR (toInteger x, toInteger y) se
 
+||| Generates a random Bits32 number in the [inclusive,inclusive] range.
+|||
+||| This generator does not shrink.
+public export
+bits32_ : Range Bits32 -> Gen Bits32
+bits32_ range = generate $ \si,se =>
+    let (x, y) = bounds si range
+     in fst $ nextBits32Range x y se
+
 ||| Generates a random integral number in the given @[inclusive,inclusive]@ range.
 |||
 ||| When the generator tries to shrink, it will shrink towards the
@@ -177,6 +186,20 @@ integral_ range = generate $ \si,se =>
 public export %inline
 integral : ToInteger a => Range a -> Gen a
 integral range = shrink (towards $ origin range) (integral_ range)
+
+||| Generates a random 32-bit integer in the given range.
+|||
+||| This is a specialization of 'integral', offered for convenience.
+public export %inline
+bits32 : Range Bits32 -> Gen Bits32
+bits32 range = shrink (towards $ origin range) (bits32_ range)
+
+||| Generates a random 32-bit signed integer in the full available range.
+|||
+||| This shrinks exponentially towards 0.
+public export %inline
+anyBits32 : Gen Bits32
+anyBits32 = bits32 (exponential 0 maxBound)
 
 ||| Generates a random machine integer in the given range.
 |||
@@ -244,9 +267,9 @@ anyInt64 = int64 (exponentialFrom 0 minBound maxBound)
 ||| Generates a random 8-bit integer in the given range.
 |||
 ||| This is a specialization of 'integral', offered for convenience.
-public export %inline
+public export
 bits8 : Range Bits8 -> Gen Bits8
-bits8 = integral
+bits8 r = cast <$> bits32 (map cast r)
 
 ||| Generates a random 8-bit signed integer in the full available range.
 |||
@@ -260,7 +283,7 @@ anyBits8 = bits8 (exponential 0 maxBound)
 ||| This is a specialization of 'integral', offered for convenience.
 public export %inline
 bits16 : Range Bits16 -> Gen Bits16
-bits16 = integral
+bits16 r = cast <$> bits32 (map cast r)
 
 ||| Generates a random 16-bit signed integer in the full available range.
 |||
@@ -268,20 +291,6 @@ bits16 = integral
 public export %inline
 anyBits16 : Gen Bits16
 anyBits16 = bits16 (exponential 0 maxBound)
-
-||| Generates a random 32-bit integer in the given range.
-|||
-||| This is a specialization of 'integral', offered for convenience.
-public export %inline
-bits32 : Range Bits32 -> Gen Bits32
-bits32 = integral
-
-||| Generates a random 32-bit signed integer in the full available range.
-|||
-||| This shrinks exponentially towards 0.
-public export %inline
-anyBits32 : Gen Bits32
-anyBits32 = bits32 (exponential 0 maxBound)
 
 ||| Generates a random 64-bit integer in the given range.
 |||
@@ -321,10 +330,10 @@ size = integral
 ||| Generates a random (Fin n) in the given range.
 public export %inline
 fin : {n : _} -> Range (Fin n) -> Gen (Fin n)
-fin range = let rangeInt = map finToInteger range
-             in map toFin (integer rangeInt)
-  where toFin : Integer -> Fin n
-        toFin k = fromMaybe range.origin (integerToFin k n)
+fin range = let rangeBits32 = map (cast . finToInteger) range
+             in map toFin (bits32 rangeBits32)
+  where toFin : Bits32 -> Fin n
+        toFin k = fromMaybe range.origin (integerToFin (cast k) n)
 
 --------------------------------------------------------------------------------
 --          Floating Point
@@ -351,7 +360,7 @@ double range = shrink (towardsDouble $ origin range) (double_ range)
 --------------------------------------------------------------------------------
 
 ||| Trivial generator that always produces the same element.
-|||
+|||j
 ||| This is another name for `pure`.
 public export %inline
 constant : a -> Gen a
@@ -394,17 +403,17 @@ choice_ vs = element_ vs >>= id
 ||| Note that if the given frequencies sum up to 0, the first element
 ||| of the vector
 public export %inline
-frequency : Vect (S k) (Nat, Gen a) -> Gen a
+frequency : Vect (S k) (Bits32, Gen a) -> Gen a
 frequency ps =
-  let acc    = scanl1 addFst $ map (mapFst toInteger) ps
+  let acc    = scanl1 addFst ps
       gen    = integral_ . constant 0 . fst $ last acc
       lower  = \n => takeWhile (< n) (fromFoldable $ map fst acc)
 
   in shrink lower gen >>= choose acc
-  where addFst : (Integer,x) -> (Integer,x) -> (Integer,x)
+  where addFst : (Bits32,x) -> (Bits32,x) -> (Bits32,x)
         addFst (x,_) (y,v) = (x + y,v)
 
-        choose : Vect n (Integer, Gen a) -> Integer -> Gen a
+        choose : Vect n (Bits32, Gen a) -> Bits32 -> Gen a
         choose []             _ = snd $ head ps
         choose ((i, v) :: ps) k = if i >= k then v else choose ps k
 
@@ -424,7 +433,7 @@ bool = element [False,True]
 ||| Shrinks towards the origin of the range.
 export %inline
 char : Range Char -> Gen Char
-char = map chr . int . map ord
+char = map cast . bits32 . map cast
 
 ||| Generates a character in the interval [lower,uppper].
 |||
@@ -533,18 +542,21 @@ unicodeAll = charc '\0' '\1114111'
 ||| Generates a 'Nothing' some of the time.
 export %inline
 maybe : Gen a -> Gen (Maybe a)
-maybe gen = sized $ \s => frequency [ (2, constant Nothing)
-                                    , (S s.size, Just <$> gen)
-                                    ]
+maybe gen = sized $ \s => frequency
+  [ (2, constant Nothing)
+  , (1 + cast s.size, Just <$> gen)
+  ]
 
 ||| Generates either an 'a' or a 'b'.
 |||
 ||| As the size grows, this generator generates @Right@s more often than @Left@s.
 export %inline
 either : Gen a -> Gen b -> Gen (Either a b)
-either genA genB = sized $ \s => frequency [ (2, Left <$> genA)
-                                           , (S s.size, Right <$> genB)
-                                           ]
+either genA genB = sized $ \s => frequency
+  [ (2, Left <$> genA)
+  , (1 + cast s.size, Right <$> genB)
+  ]
+
 ||| Generates either an 'a' or a 'b', without bias.
 |||
 ||| This generator generates as many @Right@s as it does @Left@s.
@@ -564,7 +576,7 @@ list : Range Nat -> Gen a -> Gen (List a)
 list range gen =
   sized $ \si => let minLength = lowerBound si range
                   in  mapGen (interleave minLength . value)
-                    $ integral_ range >>= (\n => map toList (vect n (toTree gen)))
+                    $ bits32_ (map cast range) >>= (\n => map toList (vect (cast n) (toTree gen)))
 ||| Generates a non-empty list using a `Range` to determine the length.
 export %inline
 list1 : Range Nat -> Gen a -> Gen (List1 a)

@@ -160,6 +160,15 @@ nextIntegerR (x,y) =
   let f = \l,u => mapFst (l+) . nextIntegerImpl (u-l)
    in if x <= y then f x y else f y x
 
+nextBits32_ : Bits32 -> Bits32 -> Seed -> (Bits32,Seed)
+nextBits32_ l u s =
+  let (v,s) := nextBits32R (u-l) s
+   in (l+v, s)
+
+export
+nextBits32Range :  Bits32 -> Bits32 -> Seed -> (Bits32,Seed)
+nextBits32Range x y s = if x <= y then nextBits32_ x y s else nextBits32_ y x s
+
 ||| Generates a 64-bit value
 export
 nextBits64 : Seed -> (Bits64, Seed)
