@@ -37,18 +37,18 @@ public export %inline
 runGen : Size -> Seed -> Gen a -> Cotree a
 runGen si se g = unGen g si se
 
-public export %inline
+public export
 mapGen :  (f : Cotree a -> Cotree b) -> Gen a -> Gen b
 mapGen f (MkGen run) = MkGen $ \si,se => f (run si se)
 
 ||| Lift a predefined shrink tree in to a generator, ignoring the seed and the
 ||| size.
-public export %inline
+public export
 fromTree : Cotree a -> Gen a
 fromTree ct = MkGen $ \_,_ => ct
 
 ||| Observe a generator's shrink tree.
-public export %inline
+public export
 toTree : Gen a -> Gen (Cotree a)
 toTree (MkGen unGen) = MkGen $ \si,se => pure (unGen si se)
 
@@ -79,7 +79,7 @@ Monad Gen where
 --          Combinators
 --------------------------------------------------------------------------------
 
-public export %inline
+public export
 generate : (Size -> Seed -> a) -> Gen a
 generate  f = MkGen $ \si,se => pure (f si se)
 
@@ -87,7 +87,7 @@ generate  f = MkGen $ \si,se => pure (f si se)
 --          Shrinking
 --------------------------------------------------------------------------------
 
-public export %inline
+public export
 shrink : (a -> Colist a) -> Gen a -> Gen a
 shrink f = mapGen (expand f)
 
@@ -100,12 +100,12 @@ prune = mapGen prune
 --------------------------------------------------------------------------------
 
 ||| Construct a generator that depends on the size parameter.
-public export %inline
+public export
 sized : (Size -> Gen a) -> Gen a
 sized f = generate (\si,_ => si) >>= f
 
 ||| Adjust the size parameter by transforming it with the given function.
-public export %inline
+public export
 scale : (Size -> Size) -> Gen a -> Gen a
 scale f (MkGen run) = MkGen $ \si,se => run (f si) se
 
@@ -119,7 +119,7 @@ resize size = scale (const size)
 |||
 |||   > golden x = x / φ
 |||   > golden x = x / 1.61803..
-public export %inline
+public export
 golden : Size -> Size
 golden = resize $ \n => round (0.61803398875 * cast n)
 
@@ -174,7 +174,7 @@ integral_ range = generate $ \si,se =>
 |||   > 2058
 |||   > 2060
 |||
-public export %inline
+public export
 integral : ToInteger a => Range a -> Gen a
 integral range = shrink (towards $ origin range) (integral_ range)
 
@@ -319,7 +319,7 @@ size : Range Size -> Gen Size
 size = integral
 
 ||| Generates a random (Fin n) in the given range.
-public export %inline
+public export
 fin : {n : _} -> Range (Fin n) -> Gen (Fin n)
 fin range = let rangeInt = map finToInteger range
              in map toFin (integer rangeInt)
@@ -333,7 +333,7 @@ fin range = let rangeInt = map finToInteger range
 ||| Generates a random fractional number in the [inclusive,exclusive) range.
 |||
 ||| This generator does not shrink.
-export %inline
+export
 double_ : Range Double -> Gen Double
 double_ range = generate $ \si,se => let (x, y) = bounds si range
                                       in fst $ nextDoubleR x y se
@@ -360,7 +360,7 @@ constant = pure
 ||| Randomly selects one of the elements in the vector.
 |||
 ||| This generator shrinks towards the first element in the vector.
-public export %inline
+public export
 element : {k : _} -> Vect (S k) a -> Gen a
 element vs = map (`index` vs) (fin $ constant FZ last)
 
@@ -393,7 +393,7 @@ choice_ vs = element_ vs >>= id
 |||
 ||| Note that if the given frequencies sum up to 0, the first element
 ||| of the vector
-public export %inline
+public export
 frequency : Vect (S k) (Nat, Gen a) -> Gen a
 frequency ps =
   let acc    = scanl1 addFst $ map (mapFst toInteger) ps
@@ -422,7 +422,7 @@ bool = element [False,True]
 ||| Generates a character in the given `Range`.
 |||
 ||| Shrinks towards the origin of the range.
-export %inline
+export
 char : Range Char -> Gen Char
 char = map chr . int . map ord
 
@@ -450,7 +450,7 @@ digit : Gen Char
 digit = charc '0' '9'
 
 ||| Generates an ASCII hexit: `'0'..'9', 'a'..'f', 'A'..'F'`
-export %inline
+export
 hexit : Gen Char
 hexit = frequency [(10, digit),(6, charc 'a' 'f'),(6, charc 'A' 'F')]
 
@@ -470,7 +470,7 @@ alpha : Gen Char
 alpha = choice [lower,upper]
 
 ||| Generates an ASCII letter or digit: `'a'..'z', 'A'..'Z', '0'..'9'`
-export %inline
+export
 alphaNum : Gen Char
 alphaNum = frequency [(10,digit),(24,lower),(24,upper)]
 
@@ -492,14 +492,14 @@ latin : Gen Char
 latin = charc '\0' '\255'
 
 ||| Generates a printable latin character: `'\32'..'\126'` and `'\160'..'\255'`
-export %inline
+export
 printableLatin : Gen Char
 printableLatin = frequency [ (95, printableAscii), (96, charc '\160' '\255') ]
 
 ||| Generates a Unicode character, excluding noncharacters
 ||| and invalid standalone surrogates:
 ||| `'\0'..'\1114111'` (excluding '\55296'..'\57343', '\65534', '\65535')`
-export %inline
+export
 unicode : Gen Char
 unicode = frequency [ (55296, charc '\0' '\55295')
                     , (8190, charc '\57344' '\65533')
@@ -510,7 +510,7 @@ unicode = frequency [ (55296, charc '\0' '\55295')
 ||| and invalid standalone surrogates:
 ||| `'\0'..'\1114111'` (excluding '\0' .. '\31', '\127' .. '\159',
 ||| '\55296'..'\57343', and '\65534', '\65535')`
-export %inline
+export
 printableUnicode : Gen Char
 printableUnicode =
   frequency
@@ -531,7 +531,7 @@ unicodeAll = charc '\0' '\1114111'
 --------------------------------------------------------------------------------
 
 ||| Generates a 'Nothing' some of the time.
-export %inline
+export
 maybe : Gen a -> Gen (Maybe a)
 maybe gen = sized $ \s => frequency [ (2, constant Nothing)
                                     , (S s.size, Just <$> gen)
@@ -540,7 +540,7 @@ maybe gen = sized $ \s => frequency [ (2, constant Nothing)
 ||| Generates either an 'a' or a 'b'.
 |||
 ||| As the size grows, this generator generates @Right@s more often than @Left@s.
-export %inline
+export
 either : Gen a -> Gen b -> Gen (Either a b)
 either genA genB = sized $ \s => frequency [ (2, Left <$> genA)
                                            , (S s.size, Right <$> genB)
@@ -553,25 +553,25 @@ either_ : Gen a -> Gen b -> Gen (Either a b)
 either_ genA genB = choice [Left <$> genA, Right <$> genB]
 
 ||| Generates a list using a 'Range' to determine the length.
-export %inline
+export
 vect : (n : Nat) -> Gen a -> Gen (Vect n a)
 vect 0     _ = pure []
 vect (S k) g = [| g :: vect k g |]
 
 ||| Generates a list using a 'Range' to determine the length.
-export %inline
+export
 list : Range Nat -> Gen a -> Gen (List a)
 list range gen =
   sized $ \si => let minLength = lowerBound si range
                   in  mapGen (interleave minLength . value)
                     $ integral_ range >>= (\n => map toList (vect n (toTree gen)))
 ||| Generates a non-empty list using a `Range` to determine the length.
-export %inline
+export
 list1 : Range Nat -> Gen a -> Gen (List1 a)
 list1 range gen = [| gen ::: list (map pred range) gen |]
 
 ||| Generates a string using 'Range' to determine the length.
-export %inline
+export
 string : Range Nat -> Gen Char -> Gen String
 string range = map fastPack . list range
 
@@ -588,7 +588,7 @@ collapseNPV {ks = t::t2::ts}(v::v2::vs) =
 
 ||| Turns an n-ary product of generators into a generator
 ||| of n-ary products of the same type.
-export %inline
+export
 np : NP Gen ts -> Gen (NP I ts)
 np = sequenceNP
 
@@ -596,7 +596,7 @@ np = sequenceNP
 ||| of n-ary sums of the same type. This is a generalisation
 ||| of choice and shrinks towards the first sum type
 ||| in the list.
-export %inline
+export
 ns : NP Gen ts -> {auto 0 prf : NonEmpty ts} -> Gen (NS I ts)
 ns np = let (_ ** vs) = collapseNPV (apInjsNP_ np)
          in choice (map sequenceNS vs)
@@ -605,12 +605,12 @@ ns np = let (_ ** vs) = collapseNPV (apInjsNP_ np)
 ||| of n-ary sums of the same type. This is a generalisation
 ||| of `choice_` and does not shrink towards a particular
 ||| sum type.
-export %inline
+export
 ns_ : NP Gen ts -> {auto 0 prf : NonEmpty ts} -> Gen (NS I ts)
 ns_ np = let (_ ** vs) = collapseNPV (apInjsNP_ np)
          in choice_ (map sequenceNS vs)
 
-export %inline
+export
 sop : POP Gen tss -> {auto 0 prf : NonEmpty tss} -> Gen (SOP I tss)
 sop p = let (_ ** vs) = collapseNPV {a = SOP Gen tss} (apInjsPOP_ p)
          in choice (map sequenceSOP vs)

@@ -12,7 +12,7 @@ public export
 halvesInteger : Integer -> Colist Integer
 halvesInteger = iterateBefore0 (`safeDiv` 2)
 
-public export %inline
+public export
 halves : ToInteger a => a -> Colist a
 halves = map fromInteger . halvesInteger . toInteger
 
