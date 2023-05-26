@@ -107,7 +107,7 @@ export
 initSMGen : HasIO io => io Seed
 initSMGen = liftIO
           . map smGen
-          $ fromPrim (prim__random_Bits64 0xffff_ffff)
+          $ fromPrim (prim__random_Bits64 4294967087) -- max number supported by racket
 
 ||| Split a generator into a two uncorrelated generators.
 |||
