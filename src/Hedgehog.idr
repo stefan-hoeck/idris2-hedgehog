@@ -4,6 +4,7 @@ import public Control.Monad.Either
 import public Control.Monad.Writer
 import public Hedgehog.Internal.Config as Hedgehog
 import public Hedgehog.Internal.Gen as Hedgehog
+import public Hedgehog.Internal.Function as Hedgehog
 import public Hedgehog.Internal.Property as Hedgehog
 import public Hedgehog.Internal.Range as Hedgehog
 import public Hedgehog.Internal.Runner as Hedgehog

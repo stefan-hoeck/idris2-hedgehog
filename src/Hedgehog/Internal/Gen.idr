@@ -52,6 +52,10 @@ public export
 toTree : Gen a -> Gen (Cotree a)
 toTree (MkGen unGen) = MkGen $ \si,se => pure (unGen si se)
 
+public export
+variant : Nat -> Gen a -> Gen a
+variant n (MkGen run) = MkGen $ \sz => run sz . variant (cast n)
+
 --------------------------------------------------------------------------------
 --          Interface Implementations
 --------------------------------------------------------------------------------

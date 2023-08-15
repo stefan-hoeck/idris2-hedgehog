@@ -157,6 +157,13 @@ nextDoubleR x y = let g = \l,u => let diff = u - l
                                    in mapFst (\f => l + f * diff) . nextDouble
                    in if x <= y then g x y else g y x
 
+||| Get a fast n-th alternative of a generator.
+||| The resulting generator is correlated to the original one.
+-- idea taken from https://github.com/qfpl/hedgehog-fn/blob/2621548943ffa46c98f430cca6beeb9025ea3127/src/Hedgehog/Function/Internal.hs#L73
+export
+variant : Bits64 -> Seed -> Seed
+variant n $ MkSeed seed gamma = MkSeed (seed + n) gamma
+
 --------------------------------------------------------------------------------
 --          Generating Integer Ranges
 --------------------------------------------------------------------------------
