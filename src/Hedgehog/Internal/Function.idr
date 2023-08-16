@@ -11,21 +11,21 @@ import Hedgehog.Internal.Seed
 %default total
 
 export
-interface CoGen a where
-  constructor MkCoGen
-  unCoGen : a -> Gen b -> Gen b
+interface Cogen a where
+  constructor MkCogen
+  unCogen : a -> Gen b -> Gen b
 
 export
-Cast a Nat => CoGen a where
-  unCoGen = variant . cast
+Cast a Nat => Cogen a where
+  unCogen = variant . cast
 
 ||| Generates a random function being given a generator of codomain type
 |||
 ||| This function takes a co-generator of domain type using `auto`-argument based on the type.
 ||| This generator does not shrink.
 export
-function_ : CoGen a => Gen b -> Gen (a -> b)
-function_ @{cg} bg = MkGen $ \sz, sd => singleton $ \x => value $ runGen sz sd $ unCoGen @{cg} x bg
+function_ : Cogen a => Gen b -> Gen (a -> b)
+function_ @{cg} bg = MkGen $ \sz, sd => singleton $ \x => value $ runGen sz sd $ unCogen @{cg} x bg
 
 ----------------------------
 --- Shrinkable functions ---
@@ -135,8 +135,8 @@ Show a => Show b => Show (Fn a b) where
 ||| This function takes a co-generator of domain type using `auto`-argument based on the type.
 ||| This generator is shrinkable. For this, it requires additional `Arg` argument.
 export
-function : Arg a => CoGen a => Gen b -> Gen (Fn a b)
-function @{_} @{cg} gb = [| MkFn gb (genFn $ \a => unCoGen @{cg} a gb) |] where
+function : Arg a => Cogen a => Gen b -> Gen (Fn a b)
+function @{_} @{cg} gb = [| MkFn gb (genFn $ \a => unCogen @{cg} a gb) |] where
 
   shrinkTree : Cotree b -> Colist $ Cotree b
   shrinkTree $ MkCotree _ cs = cs
@@ -157,5 +157,5 @@ apply (MkFn b f) = maybe b value . apply' f
 ||| It may be useful sometimes, however, it returnes a non-showable type.
 ||| To use functions generator in `forAll` in a property, use `function` function.
 public export
-function' : Arg a => CoGen a => Gen b -> Gen (a -> b)
+function' : Arg a => Cogen a => Gen b -> Gen (a -> b)
 function' = map apply . function
