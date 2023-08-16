@@ -2,6 +2,7 @@ module Hedgehog.Internal.Function
 
 import Data.Colist
 import Data.Cotree
+import Data.Either
 import Data.String
 
 import Hedgehog.Internal.Gen
@@ -15,13 +16,76 @@ interface Cogen a where
   constructor MkCogen
   perturb : a -> Seed -> Seed
 
+||| This function is meant to be used between successive perturbations is different arguments of the same constructor
+export
+shiftArg : Seed -> Seed
+shiftArg = variant 33 . snd . split . variant 31
+
 export
 cogen : Cogen a => a -> Gen b -> Gen b
 cogen x g = MkGen $ \sz, sd => unGen g sz $ perturb x sd
 
 export
-Cast a Nat => Cogen a where
-  perturb = variant . cast . cast {to=Nat}
+Cogen Unit where
+  perturb _ = id
+
+export
+Cogen Bool where
+  perturb True  = variant 0
+  perturb False = variant 1
+
+export
+[FromNat] Cast a Nat => Cogen a where
+  perturb = shiftArg .: variant . cast . cast {to=Nat}
+
+export
+[FromCast] Cast a b => Cogen b => Cogen a where
+  perturb @{ab} = perturb . cast @{ab}
+
+export %hint
+CogenNat : Cogen Nat
+CogenNat = FromNat
+
+export %hint
+CogenChar : Cogen Char
+CogenChar = FromNat
+
+export
+Cogen a => Cogen b => Cogen (a, b) where
+  perturb (x, y) = perturb x . shiftArg . perturb y . shiftArg
+
+export
+Cogen a => Cogen b => Cogen (Either a b) where
+  perturb $ Left  x = perturb x . shiftArg . variant 0
+  perturb $ Right y = perturb y . shiftArg . variant 1
+
+export
+Cogen a => Cogen (Maybe a) where
+  perturb Nothing  = variant 0
+  perturb (Just x) = perturb x . shiftArg . variant 1
+
+export
+Cogen a => Cogen (List a) where
+  perturb []      = variant 0
+  perturb (x::xs) = perturb xs . shiftArg . perturb x . shiftArg . variant 1
+
+Integral a => Neg a => Ord a => Cast a (Bool, List Bool) where
+  cast n = if n >= 0 then (True, go [] n) else (False, go [] $ -n - 1) where
+    go : List Bool -> a -> List Bool
+    go bits x = if x == 0 then bits else go ((mod x 2 == 1) :: bits) (assert_smaller x $ div x 2)
+
+Integral a => Neg a => Cast (Bool, List Bool) a where
+  cast (sign, bits) = do
+    let body = foldl (\acc, b => acc * 2 + if b then 1 else 0) (the a 0) bits
+    if sign then body else negate $ body + 1
+
+export %hint
+IntegralCogen : Integral a => Neg a => Ord a => Cogen a
+IntegralCogen = FromCast {b=(Bool, List Bool)}
+
+export
+Cogen String where
+  perturb = perturb . fastUnpack
 
 ||| Generates a random function being given a generator of codomain type
 |||
@@ -92,8 +156,49 @@ via : Arg b => (a -> b) -> (b -> a) -> (a -> c) -> a :-> c
 via a b f = Map a b . build $ f . b
 
 -- Note: this will work only when two given casts are inverse of each other
-[ThruCast] Cast a b => Cast b a => Arg b => Arg a where
-  build = via {b} cast cast
+[ThruCast] Cast a thru => Cast thru a => Arg thru => Arg a where
+  build = via {b=thru} cast cast
+
+export
+Arg a => Arg (Maybe a) where
+  build = via (maybeToEither ()) eitherToMaybe
+
+export
+Arg Bool where
+  build = via toEither fromEither where
+    toEither : Bool -> Either Unit Unit
+    toEither True  = Left ()
+    toEither False = Right ()
+    fromEither : Either Unit Unit -> Bool
+    fromEither $ Left ()  = True
+    fromEither $ Right () = False
+
+export
+Arg a => Arg (List a) where
+  -- it's total due to particular implementation of `toEither`, which returns strictly smaller list each time
+  build = assert_total via toEither fromEither where
+    toEither : List a -> Either Unit (a, List a)
+    toEither []      = Left ()
+    toEither (x::xs) = Right (x, xs)
+    fromEither : Either Unit (a, List a) -> List a
+    fromEither (Left ())       = []
+    fromEither (Right (x, xs)) = x::xs
+
+export %hint
+IntegralArg : Integral a => Neg a => Ord a => Arg a
+IntegralArg = ThruCast {thru=(Bool, List Bool)}
+
+export
+ShrCogen Nat where
+  build = via {b=Integer} cast cast
+
+export
+ShrCogen Char where
+  build = via {b=Integer} cast cast
+
+export
+ShrCogen String where
+  build = via fastUnpack fastPack
 
 apply' : a :-> b -> a -> Maybe b
 apply' (Unit c)    ()        = Just c
