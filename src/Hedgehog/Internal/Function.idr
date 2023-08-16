@@ -13,19 +13,24 @@ import Hedgehog.Internal.Seed
 export
 interface Cogen a where
   constructor MkCogen
-  unCogen : a -> Gen b -> Gen b
+  perturb : a -> Seed -> Seed
+
+export
+cogen : Cogen a => a -> Gen b -> Gen b
+cogen x g = MkGen $ \sz, sd => unGen g sz $ perturb x sd
 
 export
 Cast a Nat => Cogen a where
-  unCogen = variant . cast
+  perturb = variant . cast . cast {to=Nat}
 
 ||| Generates a random function being given a generator of codomain type
 |||
 ||| This function takes a co-generator of domain type using `auto`-argument based on the type.
 ||| This generator does not shrink.
+||| Notice that this generator returns a non-showable value (unless you invent your own implementation).
 export
 function_ : Cogen a => Gen b -> Gen (a -> b)
-function_ @{cg} bg = MkGen $ \sz, sd => singleton $ \x => value $ runGen sz sd $ unCogen @{cg} x bg
+function_ @{cg} bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen bg sz $ perturb x sd
 
 ----------------------------
 --- Shrinkable functions ---
@@ -136,7 +141,7 @@ Show a => Show b => Show (Fn a b) where
 ||| This generator is shrinkable. For this, it requires additional `Arg` argument.
 export
 function : Arg a => Cogen a => Gen b -> Gen (Fn a b)
-function @{_} @{cg} gb = [| MkFn gb (genFn $ \a => unCogen @{cg} a gb) |] where
+function @{_} @{cg} gb = [| MkFn gb (genFn $ \a => cogen @{cg} a gb) |] where
 
   shrinkTree : Cotree b -> Colist $ Cotree b
   shrinkTree $ MkCotree _ cs = cs
