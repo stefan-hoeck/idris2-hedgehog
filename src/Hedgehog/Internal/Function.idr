@@ -105,9 +105,9 @@ public export
 data (:->) : Type -> Type -> Type where
   Unit : c -> () :-> c
   Nil  : a :-> c
-  Pair : (assert_total $ a :-> b :-> c) -> (a, b) :-> c
-  Sum  : a :-> c -> b :-> c -> Either a b :-> c
-  Map  : (a -> b) -> (b -> a) -> b :-> c -> a :-> c
+  Pair : Lazy (a :-> b :-> c) -> (a, b) :-> c
+  Sum  : Lazy (a :-> c) -> Lazy (b :-> c) -> Either a b :-> c
+  Map  : (a -> b) -> (b -> a) -> Lazy (b :-> c) -> a :-> c
 
 export
 Functor ((:->) a) where
@@ -141,7 +141,7 @@ ShrCogen Unit where
 
 export
 ShrCogen a => ShrCogen b => ShrCogen (a, b) where
-  build f = Pair . build $ \a => build $ \b => f (a, b)
+  build f = Pair $ build $ \a => build $ \b => f (a, b)
 
 export
 ShrCogen a => ShrCogen b => ShrCogen (Either a b) where
@@ -149,7 +149,7 @@ ShrCogen a => ShrCogen b => ShrCogen (Either a b) where
 
 -- Note: `via f g` will only be well-behaved if `g . f` and `f . g` are both identity functions.
 via : ShrCogen b => (a -> b) -> (b -> a) -> (a -> c) -> a :-> c
-via a b f = Map a b . build $ f . b
+via a b f = Map a b $ build $ f . b
 
 export
 ShrCogen a => ShrCogen (Maybe a) where
@@ -167,7 +167,6 @@ ShrCogen Bool where
 
 export
 ShrCogen a => ShrCogen (List a) where
-  -- it's total due to particular implementation of `toEither`, which returns strictly smaller list each time
   build = assert_total via toEither fromEither where
     toEither : List a -> Either Unit (a, List a)
     toEither []      = Left ()
