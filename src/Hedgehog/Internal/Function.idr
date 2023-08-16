@@ -35,20 +35,16 @@ Cogen Bool where
   perturb False = variant 1
 
 export
-[FromNat] Cast a Nat => Cogen a where
-  perturb = shiftArg .: variant . cast . cast {to=Nat}
+Cogen Nat where
+  perturb = variant . cast
 
 export
-[FromCast] Cast a b => Cogen b => Cogen a where
-  perturb @{ab} = perturb . cast @{ab}
+Cogen Char where
+  perturb = variant . cast
 
-export %hint
-CogenNat : Cogen Nat
-CogenNat = FromNat
-
-export %hint
-CogenChar : Cogen Char
-CogenChar = FromNat
+export
+Cogen Void where
+  perturb _ impossible
 
 export
 Cogen a => Cogen b => Cogen (a, b) where
@@ -79,9 +75,9 @@ Integral a => Neg a => Cast (Bool, List Bool) a where
     let body = foldl (\acc, b => acc * 2 + if b then 1 else 0) (the a 0) bits
     if sign then body else negate $ body + 1
 
-export %hint
-IntegralCogen : Integral a => Neg a => Ord a => Cogen a
-IntegralCogen = FromCast {b=(Bool, List Bool)}
+export
+Integral a => Neg a => Ord a => Cogen a where
+  perturb = perturb . cast {to=(Bool, List Bool)}
 
 export
 Cogen String where
@@ -132,7 +128,7 @@ table (Sum a b) = [(Left x, c) | (x, c) <- table a] ++ [(Right x, c) | (x, c) <-
 table (Map _ g a) = mapFst g <$> table a
 
 public export
-interface Arg a where
+interface Cogen a => Arg a where
   build : (a -> c) -> a :-> c
 
 export
@@ -154,10 +150,6 @@ Arg a => Arg b => Arg (Either a b) where
 -- Note: `via f g` will only be well-behaved if `g . f` and `f . g` are both identity functions.
 via : Arg b => (a -> b) -> (b -> a) -> (a -> c) -> a :-> c
 via a b f = Map a b . build $ f . b
-
--- Note: this will work only when two given casts are inverse of each other
-[ThruCast] Cast a thru => Cast thru a => Arg thru => Arg a where
-  build = via {b=thru} cast cast
 
 export
 Arg a => Arg (Maybe a) where
@@ -184,9 +176,9 @@ Arg a => Arg (List a) where
     fromEither (Left ())       = []
     fromEither (Right (x, xs)) = x::xs
 
-export %hint
-IntegralArg : Integral a => Neg a => Ord a => Arg a
-IntegralArg = ThruCast {thru=(Bool, List Bool)}
+export
+Integral a => Neg a => Ord a => Arg a where
+  build = via {b=(Bool, List Bool)} cast cast
 
 export
 ShrCogen Nat where
@@ -245,8 +237,8 @@ Show a => Show b => Show (Fn a b) where
 ||| This function takes a co-generator of domain type using `auto`-argument based on the type.
 ||| This generator is shrinkable. For this, it requires additional `Arg` argument.
 export
-function : Arg a => Cogen a => Gen b -> Gen (Fn a b)
-function @{_} @{cg} gb = [| MkFn gb (genFn $ \a => cogen @{cg} a gb) |] where
+function : Arg a => Gen b -> Gen (Fn a b)
+function gb = [| MkFn gb (genFn $ \a => cogen a gb) |] where
 
   shrinkTree : Cotree b -> Colist $ Cotree b
   shrinkTree $ MkCotree _ cs = cs
@@ -263,9 +255,9 @@ apply (MkFn b f) = maybe b value . apply' f
 |||
 ||| This generator is shrinkable
 |||
-||| This is a wrapper of a `function` function.
+||| This is a wrapper of a `function` generator.
 ||| It may be useful sometimes, however, it returnes a non-showable type.
-||| To use functions generator in `forAll` in a property, use `function` function.
+||| To use functions generator in `forAll` in a property, use `function` generator.
 public export
-function' : Arg a => Cogen a => Gen b -> Gen (a -> b)
+function' : Arg a => Gen b -> Gen (a -> b)
 function' = map apply . function
