@@ -199,14 +199,10 @@ apply' (Sum f _)   (Left a)  = apply' f a
 apply' (Sum _ g)   (Right a) = apply' g a
 apply' (Map f _ g) a         = apply' g (f a)
 
-(++) : Colist a -> Inf (Colist a) -> Colist a
-[]      ++ ys = ys
-(x::xs) ++ ys = x :: (xs ++ ys)
-
-shrinkFn : (b -> Colist b) -> a :-> b -> Colist $ a :-> b
+shrinkFn : (b -> Inf (Colist b)) -> a :-> b -> Colist $ a :-> b
 shrinkFn shr (Unit a)  = Unit <$> shr a
 shrinkFn _   Nil       = []
-shrinkFn shr (Pair f)  = shrinkFn (assert_total $ shrinkFn shr) f <&> \case Nil => Nil; a => Pair a
+shrinkFn shr (Pair f)  = shrinkFn (delay . assert_total (shrinkFn shr)) f <&> \case Nil => Nil; a => Pair a
 shrinkFn shr (Sum a b) =
   map (\case Sum Nil Nil => Nil; x => x) $
     (if notNil b then [ Sum a Nil ] else []) ++
@@ -214,6 +210,10 @@ shrinkFn shr (Sum a b) =
     map (`Sum` b) (shrinkFn shr a) ++
     map (a `Sum`) (shrinkFn shr b)
   where
+    (++) : forall a. Colist a -> Inf (Colist a) -> Colist a
+    []      ++ ys = ys
+    (x::xs) ++ ys = x :: (xs ++ ys)
+
     notNil : forall a, b. a :-> b -> Bool
     notNil Nil = False
     notNil _   = True
@@ -239,12 +239,9 @@ export
 function : ShrCogen a => Gen b -> Gen (Fn a b)
 function gb = [| MkFn gb (genFn $ \a => cogen a gb) |] where
 
-  shrinkTree : Cotree b -> Colist $ Cotree b
-  shrinkTree $ MkCotree _ cs = cs
-
   genFn : (a -> Gen b) -> Gen (a :-> Cotree b)
   genFn g = MkGen $ \sz, sd =>
-    unfold (\x => (x, shrinkFn shrinkTree x)) . map (runGen sz sd) $ build g
+    iterate (shrinkFn forest) . map (runGen sz sd) $ build g
 
 export
 apply : Fn a b -> a -> b
