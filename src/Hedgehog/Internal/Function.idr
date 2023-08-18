@@ -187,29 +187,29 @@ infixr 5 :->
 
 public export
 data (:->) : Type -> Type -> Type where
-  Unit : c -> () :-> c
-  Nil  : a :-> c
-  Pair : Lazy (a :-> b :-> c) -> (a, b) :-> c
-  Sum  : Lazy (a :-> c) -> Lazy (b :-> c) -> Either a b :-> c
-  Map  : (a -> b) -> (b -> a) -> Lazy (b :-> c) -> a :-> c
+  FUnit : c -> () :-> c
+  FNil  : a :-> c
+  FPair : Lazy (a :-> b :-> c) -> (a, b) :-> c
+  FSum  : Lazy (a :-> c) -> Lazy (b :-> c) -> Either a b :-> c
+  FMap  : (a -> b) -> (b -> a) -> Lazy (b :-> c) -> a :-> c
 
 export
 Functor ((:->) a) where
-  map f $ Unit c    = Unit $ f c
-  map _ $ Nil       = Nil
-  map f $ Pair a    = Pair $ map (assert_total $ map f) a
-  map f $ Sum a b   = Sum (map f a) (map f b)
-  map f $ Map a b c = Map a b $ map f c
+  map f $ FUnit c    = FUnit $ f c
+  map _ $ FNil       = FNil
+  map f $ FPair a    = FPair $ map (assert_total $ map f) a
+  map f $ FSum a b   = FSum (map f a) (map f b)
+  map f $ FMap a b c = FMap a b $ map f c
 
 table : a :-> c -> List (a, c)
-table (Unit c) = [((), c)]
-table Nil      = []
-table (Pair f) = do
+table (FUnit c) = [((), c)]
+table FNil      = []
+table (FPair f) = do
   (a, bc) <- table f
   (b, c) <- assert_total table bc
   pure ((a, b), c)
-table (Sum a b) = [(Left x, c) | (x, c) <- table a] ++ [(Right x, c) | (x, c) <- table b]
-table (Map _ g a) = mapFst g <$> table a
+table (FSum a b) = [(Left x, c) | (x, c) <- table a] ++ [(Right x, c) | (x, c) <- table b]
+table (FMap _ g a) = mapFst g <$> table a
 
 public export
 interface Cogen a => ShrCogen a where
@@ -218,26 +218,26 @@ interface Cogen a => ShrCogen a where
 
 export
 ShrCogen Void where
-  build _ = Nil
+  build _ = FNil
 
 export
 ShrCogen Unit where
-  build f = Unit $ f ()
+  build f = FUnit $ f ()
 
 export
 ShrCogen a => ShrCogen b => ShrCogen (a, b) where
-  build f = Pair $ build $ \a => build $ \b => f (a, b)
+  build f = FPair $ build $ \a => build $ \b => f (a, b)
 
 export
 ShrCogen a => ShrCogen b => ShrCogen (Either a b) where
-  build f = Sum (build $ f . Left) (build $ f . Right)
+  build f = FSum (build $ f . Left) (build $ f . Right)
 
 ||| Implement `build` function for a type through isomorphism to a type that implements `ShrCogen`
 |||
 ||| Notice that `via f g` will only be well-behaved if `g . f` and `f . g` are both identity functions.
 export
 via : ShrCogen b => (a -> b) -> (b -> a) -> (a -> c) -> a :-> c
-via a b f = Map a b $ build $ f . b
+via a b f = FMap a b $ build $ f . b
 
 export
 ShrCogen a => ShrCogen (Maybe a) where
@@ -284,32 +284,32 @@ ShrCogen String where
   build = via fastUnpack fastPack
 
 apply' : a :-> b -> a -> Maybe b
-apply' (Unit c)    ()        = Just c
-apply' Nil         _         = Nothing
-apply' (Pair f)    (a, b)    = assert_total $ apply' !(apply' f a) b
-apply' (Sum f _)   (Left a)  = apply' f a
-apply' (Sum _ g)   (Right a) = apply' g a
-apply' (Map f _ g) a         = apply' g (f a)
+apply' (FUnit c)    ()        = Just c
+apply' FNil         _         = Nothing
+apply' (FPair f)    (a, b)    = assert_total $ apply' !(apply' f a) b
+apply' (FSum f _)   (Left a)  = apply' f a
+apply' (FSum _ g)   (Right a) = apply' g a
+apply' (FMap f _ g) a         = apply' g (f a)
 
 shrinkFn : (b -> Inf (Colist b)) -> a :-> b -> Colist $ a :-> b
-shrinkFn shr (Unit a)  = Unit <$> shr a
-shrinkFn _   Nil       = []
-shrinkFn shr (Pair f)  = shrinkFn (delay . assert_total (shrinkFn shr)) f <&> \case Nil => Nil; a => Pair a
-shrinkFn shr (Sum a b) =
-  map (\case Sum Nil Nil => Nil; x => x) $
-    (if notNil b then [ Sum a Nil ] else []) ++
-    (if notNil a then [ Sum Nil b ] else []) ++
-    map (`Sum` b) (shrinkFn shr a) ++
-    map (a `Sum`) (shrinkFn shr b)
+shrinkFn shr (FUnit a)  = FUnit <$> shr a
+shrinkFn _   FNil       = []
+shrinkFn shr (FPair f)  = shrinkFn (delay . assert_total (shrinkFn shr)) f <&> \case FNil => FNil; a => FPair a
+shrinkFn shr (FSum a b) =
+  map (\case FSum FNil FNil => FNil; x => x) $
+    (if notFNil b then [ FSum a FNil ] else []) ++
+    (if notFNil a then [ FSum FNil b ] else []) ++
+    map (`FSum` b) (shrinkFn shr a) ++
+    map (a `FSum`) (shrinkFn shr b)
   where
     (++) : forall a. Colist a -> Inf (Colist a) -> Colist a
     []      ++ ys = ys
     (x::xs) ++ ys = x :: (xs ++ ys)
 
-    notNil : forall a, b. a :-> b -> Bool
-    notNil Nil = False
-    notNil _   = True
-shrinkFn shr (Map f g a) = shrinkFn shr a <&> \case Nil => Nil; x => Map f g x
+    notFNil : forall a, b. a :-> b -> Bool
+    notFNil FNil = False
+    notFNil _   = True
+shrinkFn shr (FMap f g a) = shrinkFn shr a <&> \case FNil => FNil; x => FMap f g x
 
 ||| The type for a randomly-generated function
 export
