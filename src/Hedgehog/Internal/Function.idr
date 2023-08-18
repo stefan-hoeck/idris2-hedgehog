@@ -32,6 +32,10 @@ Cogen Unit where
   perturb _ = id
 
 export
+Cogen (Equal x y) where
+  perturb Refl = id
+
+export
 Cogen Bool where
   perturb True  = variant 0
   perturb False = variant 1
@@ -255,6 +259,10 @@ ShrCogen a => ShrCogen (List a) where
     fromEither : Either Unit (a, List a) -> List a
     fromEither (Left ())       = []
     fromEither (Right (x, xs)) = x::xs
+
+export
+ShrCogen (Equal x x) where
+  build = via (const ()) (const Refl)
 
 export
 Integral a => Neg a => Ord a => ShrCogen a where
