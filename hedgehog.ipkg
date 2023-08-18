@@ -20,7 +20,6 @@ modules = Data.Bounded
         , Hedgehog
         , Hedgehog.Internal.Config
         , Hedgehog.Internal.Function
-        , Hedgehog.Internal.Function.Derive
         , Hedgehog.Internal.Gen
         , Hedgehog.Internal.Property
         , Hedgehog.Internal.Options
