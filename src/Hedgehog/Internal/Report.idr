@@ -1,5 +1,6 @@
 module Hedgehog.Internal.Report
 
+import Data.Lazy
 import Data.Nat
 import Derive.Prelude
 import Hedgehog.Internal.Config
@@ -32,10 +33,10 @@ record FailureReport where
   seed        : Seed
   shrinks     : ShrinkCount
   coverage    : Maybe (Coverage CoverCount)
-  annotations : List FailedAnnotation
+  annotations : List (Lazy FailedAnnotation)
   message     : String
   diff        : Maybe Diff
-  footnotes   : List String
+  footnotes   : List (Lazy String)
 
 %runElab derive "FailureReport" [Show,Eq]
 
@@ -127,13 +128,13 @@ summaryTotal : Summary -> PropertyCount
 summaryTotal (MkSummary x1 x2 x3 x4) = x1 + x2 + x3 + x4
 
 export
-takeAnnotation : Lazy Log -> Maybe FailedAnnotation
+takeAnnotation : Lazy Log -> Maybe $ Lazy FailedAnnotation
 takeAnnotation (Annotation x) = Just $ MkFailedAnnotation x
 takeAnnotation (Footnote _  ) = Nothing
 takeAnnotation (LogLabel _  ) = Nothing
 
 export
-takeFootnote : Lazy Log -> Maybe String
+takeFootnote : Lazy Log -> Maybe $ Lazy String
 takeFootnote (Footnote x)   = Just x
 takeFootnote (Annotation _) = Nothing
 takeFootnote (LogLabel _)   = Nothing
@@ -338,11 +339,11 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
           bottom = maybe [reproduce nm si se] (const Nil) mcover
 
           docs : List (Doc opts)
-          docs = concatMap textLines (msgs0 ++ if msg == "" then [] else [msg])
+          docs = concatMap textLines (map force msgs0 ++ if msg == "" then [] else [msg])
                <+> maybe [] diff mdiff
 
           args : List (Doc opts)
-          args = zipWith failedInput [0 .. length inputs] (reverse inputs)
+          args = zipWith failedInput [0 .. length inputs] (reverse $ map force inputs)
 
           coverage : List (Doc opts)
           coverage =
