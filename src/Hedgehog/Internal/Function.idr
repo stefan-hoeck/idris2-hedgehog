@@ -11,7 +11,7 @@ import Hedgehog.Internal.Seed
 
 %default total
 
-export
+public export
 interface Cogen a where
   constructor MkCogen
   perturb : a -> Seed -> Seed
@@ -87,10 +87,47 @@ Cogen String where
 |||
 ||| This function takes a co-generator of domain type using `auto`-argument based on the type.
 ||| This generator does not shrink.
+|||
 ||| Notice that this generator returns a non-showable value (unless you invent your own implementation).
+||| If you need a showable function, you have to use a shrinkable version,
+||| which requires more strict implementation on the domain type.
 export
 function_ : Cogen a => Gen b -> Gen (a -> b)
-function_ @{cg} bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen bg sz $ perturb x sd
+function_ bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen bg sz $ perturb x sd
+
+||| Generates a random dependently typed function being given a generator of codomain type family
+|||
+||| This function takes a co-generator of domain type using `auto`-argument based on the type.
+||| This generator does not shrink.
+|||
+||| Notice that this generator returns a non-showable value (unless you invent your own implementation).
+export
+depfun_ : Cogen a => {0 b : a -> Type} -> ((x : a) -> Gen $ b x) -> Gen ((x : a) -> b x)
+depfun_ bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen (bg x) sz $ perturb x sd
+
+||| Generates a random function with dependently typed domain being given a generator of codomain type
+|||
+||| This function takes a co-generator of domain type family using `auto`-argument based on the type.
+||| This generator does not shrink.
+|||
+||| Notice that this generator returns a non-showable value (unless you invent your own implementation).
+export
+dargfun_ : {0 b : a -> Type} -> ({0 x : a} -> Cogen (b x)) => Gen c -> Gen ({0 x : a} -> b x -> c)
+dargfun_ bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen bg sz $ perturb x sd
+
+||| Generates a random dependently typed function with dependently typed domain
+||| being given a generator of codomain type family
+|||
+||| This function takes a co-generator of domain type family using `auto`-argument based on the type.
+||| This generator does not shrink.
+|||
+||| Notice that this generator returns a non-showable value (unless you invent your own implementation).
+export
+dargdepfun_ : {0 b : a -> Type} ->
+              {0 c : {0 x : a} -> b x -> Type} ->
+              ({0 x : a} -> Cogen (b x)) =>
+              ({0 x : a} -> (y : b x) -> Gen (c y)) -> Gen ({0 x : a} -> (y : b x) -> c y)
+dargdepfun_ bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen (bg x) sz $ perturb x sd
 
 ----------------------------
 --- Shrinkable functions ---
@@ -129,6 +166,7 @@ table (Map _ g a) = mapFst g <$> table a
 
 public export
 interface Cogen a => ShrCogen a where
+  constructor MkShrCogen
   build : (a -> c) -> a :-> c
 
 export
