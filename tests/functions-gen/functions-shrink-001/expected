@@ -1,0 +1,58 @@
+  ✗ <interactive> failed after _ tests.
+  
+    forAll 0 =
+      _ -> 0
+    
+    forAll 1 =
+      args: [0, 1, 2, 3, 100, 1000, 10000, 100000, 10000000, 100000000]
+    
+    forAll 2 =
+      vals: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  
+    This failure can be reproduced by running:
+    > recheck <erased for reprodusibility>
+  
+  ✗ <interactive> failed after _ tests.
+  
+    forAll 0 =
+      0 -> 1
+      _ -> 0
+      
+    
+    forAll 1 =
+      args: [0, 1, 2, 3, 100, 1000, 10000, 100000, 10000000, 100000000]
+    
+    forAll 2 =
+      vals: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  
+    This failure can be reproduced by running:
+    > recheck <erased for reprodusibility>
+  
+  ✗ <interactive> failed after _ tests.
+  
+    forAll 0 =
+      [1] -> 1
+      _ -> 0
+      
+    
+    forAll 1 =
+      args: [[], [0], [1], [0, 1], [1, 0]]
+    
+    forAll 2 =
+      vals: [0, 0, 1, 0, 0]
+  
+    This failure can be reproduced by running:
+    > recheck <erased for reprodusibility>
+  
+  ✗ <interactive> failed after _ tests.
+  
+    forAll 0 =
+      _ -> 0
+    
+    forAll 1 =
+      0
+  
+    This failure can be reproduced by running:
+    > recheck <erased for reprodusibility>
+  
+  ✓ <interactive> passed 100 tests.

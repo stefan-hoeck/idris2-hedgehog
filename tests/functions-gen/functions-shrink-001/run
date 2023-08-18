@@ -1,0 +1,8 @@
+rm -rf build
+
+flock "$1" pack -q install-deps test.ipkg
+HEDGEHOG_COLOR=0 idris2 --exec main --no-color --console-width 0 --no-banner --find-ipkg Spec.idr |\
+  sed 's/ recheck .*/ recheck <erased for reprodusibility>/' |\
+  sed 's/failed after .* tests*/failed after _ tests/'
+
+rm -rf build

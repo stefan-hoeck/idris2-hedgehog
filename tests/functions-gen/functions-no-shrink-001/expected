@@ -1,0 +1,26 @@
+  ✗ <interactive> failed after 1 test.
+  
+    forAll 0 =
+      <fn>
+    
+    forAll 1 =
+      args: [0, 1, 2, 3, 100, 1000, 10000, 100000, 10000000, 100000000]
+    
+    forAll 2 =
+      vals: [617, 730, 81, 100, 616, 76, 835, 404, 943, 729]
+  
+    This failure can be reproduced by running:
+    > recheck 4 (MkSeed 16626775891238333538 2532601429470541125) <property>
+  
+  ✗ <interactive> failed after 1 test.
+  
+    forAll 0 =
+      <fn>
+    
+    forAll 1 =
+      9223613
+  
+    This failure can be reproduced by running:
+    > recheck 5 (MkSeed 79087587307652701 813149745268981157) <property>
+  
+  ✓ <interactive> passed 100 tests.
