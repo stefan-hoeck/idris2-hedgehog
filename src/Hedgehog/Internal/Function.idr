@@ -232,7 +232,10 @@ export
 ShrCogen a => ShrCogen b => ShrCogen (Either a b) where
   build f = Sum (build $ f . Left) (build $ f . Right)
 
--- Note: `via f g` will only be well-behaved if `g . f` and `f . g` are both identity functions.
+||| Implement `build` function for a type through isomorphism to a type that implements `ShrCogen`
+|||
+||| Notice that `via f g` will only be well-behaved if `g . f` and `f . g` are both identity functions.
+export
 via : ShrCogen b => (a -> b) -> (b -> a) -> (a -> c) -> a :-> c
 via a b f = Map a b $ build $ f . b
 
