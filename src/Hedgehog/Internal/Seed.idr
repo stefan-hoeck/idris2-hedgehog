@@ -102,12 +102,28 @@ smGen s = MkSeed (mix64 s) (mixGamma (s + goldenGamma))
          """
 prim__random_Bits64 : Bits64 -> PrimIO Bits64
 
+||| Describes a context in which some initial seed can be gained
+|||
+||| In a non-pure context this can rely on some system entropy.
+||| In pure contexts this can get a seed from configuration,
+||| from a monadic state or from a user at the call-site.
+export
+interface CanInitSeed m where
+  initSMGen : m Seed
+
 ||| Initialize 'SMGen' using entropy available on the system (time, ...)
 export
-initSMGen : HasIO io => io Seed
-initSMGen = liftIO
-          . map smGen
-          $ fromPrim (prim__random_Bits64 4294967087) -- max number supported by racket
+HasIO io => CanInitSeed io where
+  initSMGen = liftIO
+            . map smGen
+            $ fromPrim (prim__random_Bits64 4294967087)
+              -- max number supported by racket
+
+||| Initialise the seed for any applicative context
+||| by the given particular value
+export
+Manual : Applicative m => Seed -> CanInitSeed m
+Manual seed = S where [S] CanInitSeed m where initSMGen = pure seed
 
 ||| Split a generator into a two uncorrelated generators.
 |||

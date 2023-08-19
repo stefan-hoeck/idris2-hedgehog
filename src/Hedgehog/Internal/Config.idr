@@ -27,6 +27,21 @@ data Verbosity = Quiet | Normal
 --          Detecting Config Settings
 --------------------------------------------------------------------------------
 
+||| Defines points of an global configuration for a Hedgehog run
+public export
+interface HasConfig m where
+  constructor MkHasConfig
+  detectColor     : m UseColor
+  detectVerbosity : m Verbosity
+
+export
+resolveColor : HasConfig m => Applicative m => Maybe UseColor -> m UseColor
+resolveColor = maybe detectColor pure
+
+export
+resolveVerbosity : HasConfig m => Applicative m => Maybe Verbosity -> m Verbosity
+resolveVerbosity = maybe detectVerbosity pure
+
 lookupBool : HasIO io => String -> io (Maybe Bool)
 lookupBool key =
   getEnv key >>= \case Just "0"     => pure $ Just False
@@ -39,24 +54,24 @@ lookupBool key =
 
                        _            => pure Nothing
 
+||| Reads the global configuration from environment variables
 export
-detectColor : HasIO io => io UseColor
-detectColor =
-  do Just True <- lookupBool "HEDGEHOG_COLOR"
-       | _ => pure DisableColor
-     pure EnableColor
+HasIO io => HasConfig io where
+  detectColor =
+    do Just True <- lookupBool "HEDGEHOG_COLOR"
+         | _ => pure DisableColor
+       pure EnableColor
 
-export
-detectVerbosity : HasIO io => io Verbosity
-detectVerbosity =
-  do Just "0" <- getEnv "HEDGEHOG_VERBOSITY"
-       | _ => pure Normal
-     pure Quiet
+  detectVerbosity =
+    do Just "0" <- getEnv "HEDGEHOG_VERBOSITY"
+         | _ => pure Normal
+       pure Quiet
 
-export
-resolveColor : HasIO io => Maybe UseColor -> io UseColor
-resolveColor = maybe detectColor pure
-
-export
-resolveVerbosity : HasIO io => Maybe Verbosity -> io Verbosity
-resolveVerbosity = maybe detectVerbosity pure
+||| Uses the most conservative configuration
+|||
+||| This implementation is applicable for any applicative context,
+||| including pure ones.
+export -- should be a `%defaulthint`, but does not work due to issue #2850
+[DefaultConfig] Applicative m => HasConfig m where
+  detectColor     = pure DisableColor
+  detectVerbosity = pure Normal
