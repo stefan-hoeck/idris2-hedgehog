@@ -31,3 +31,5 @@ jobs:
         run: pack install hedgehog
       - name: Build docs
         run: pack typecheck hedgehog-docs
+      - name: Test lib
+        run: pack test hedgehog

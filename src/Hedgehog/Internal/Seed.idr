@@ -111,13 +111,16 @@ export
 interface CanInitSeed m where
   initSMGen : m Seed
 
+export
+MaxRobustSmGenNum : Bits64
+MaxRobustSmGenNum = 4294967087 -- max number supported by racket
+
 ||| Initialize 'SMGen' using entropy available on the system (time, ...)
 export
 HasIO io => CanInitSeed io where
   initSMGen = liftIO
             . map smGen
-            $ fromPrim (prim__random_Bits64 4294967087)
-              -- max number supported by racket
+            $ fromPrim (prim__random_Bits64 MaxRobustSmGenNum)
 
 ||| Initialise the seed for any applicative context
 ||| by the given particular value

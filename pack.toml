@@ -2,6 +2,7 @@
 type   = "local"
 path   = "."
 ipkg   = "hedgehog.ipkg"
+test   = "tests/tests.ipkg"
 
 [custom.all.hedgehog-docs]
 type   = "local"
