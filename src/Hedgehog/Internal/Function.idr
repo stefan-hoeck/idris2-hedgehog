@@ -16,7 +16,8 @@ interface Cogen a where
   constructor MkCogen
   perturb : a -> Seed -> Seed
 
-||| This function is meant to be used between successive perturbations is different arguments of the same constructor
+||| This function is meant to be used between successive perturbations
+||| of different arguments of the same constructor
 export
 shiftArg : Seed -> Seed
 shiftArg = variant 33 . snd . split . variant 31
@@ -72,11 +73,14 @@ Cogen a => Cogen (List a) where
 Integral a => Neg a => Ord a => Cast a (Bool, List Bool) where
   cast n = if n >= 0 then (True, go [] n) else (False, go [] $ -n - 1) where
     go : List Bool -> a -> List Bool
-    go bits x = if x == 0 then bits else go ((mod x 2 == 1) :: bits) (assert_smaller x $ div x 2)
+    go bits x =
+      if x == 0
+        then bits
+        else go ((mod x 2 == 1) :: bits) (assert_smaller x $ div x 2)
 
 Integral a => Neg a => Cast (Bool, List Bool) a where
   cast (sign, bits) = do
-    let body = foldl (\acc, b => acc * the a 2 + if b then 1 else 0) (the a 0) bits
+    let body = foldl (\acc, b => acc * the a 2 + if b then 1 else 0) 0 bits
     if sign then body else negate $ body + 1
 
 export
@@ -89,56 +93,80 @@ Cogen String where
 
 ||| Generates a random function being given a generator of codomain type
 |||
-||| This function takes a co-generator of domain type using `auto`-argument based on the type.
+||| This function takes a co-generator of domain type using `auto`-argument
+||| based on the type.
 ||| This generator does not shrink.
 |||
-||| Notice that this generator returns a non-showable value (unless you invent your own implementation).
+||| Notice that this generator returns a non-showable value (unless you invent
+||| your own implementation).
 ||| If you need a showable function, you have to use a shrinkable version,
 ||| which requires more strict implementation on the domain type.
 export
 function_ : Cogen a => Gen b -> Gen (a -> b)
-function_ bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen bg sz $ perturb x sd
+function_ bg =
+  MkGen $ \sz, sd => singleton $ \x => value $ unGen bg sz $ perturb x sd
 
-||| Generates a random dependently typed function being given a generator of codomain type family
+||| Generates a random dependently typed function being given a generator
+||| of codomain type family
 |||
-||| This function takes a co-generator of domain type using `auto`-argument based on the type.
+||| This function takes a co-generator of domain type using `auto`-argument
+||| based on the type.
 ||| This generator does not shrink.
 |||
-||| Notice that this generator returns a non-showable value (unless you invent your own implementation).
+||| Notice that this generator returns a non-showable value (unless you invent
+||| your own implementation).
 export
-depfun_ : Cogen a => {0 b : a -> Type} -> ((x : a) -> Gen $ b x) -> Gen ((x : a) -> b x)
-depfun_ bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen (bg x) sz $ perturb x sd
+depfun_ :
+     Cogen a
+  => {0 b : a -> Type}
+  -> ((x : a) -> Gen $ b x)
+  -> Gen ((x : a) -> b x)
+depfun_ bg =
+  MkGen $ \sz, sd => singleton $ \x => value $ unGen (bg x) sz $ perturb x sd
 
-||| Generates a random function with dependently typed domain being given a generator of codomain type
+||| Generates a random function with dependently typed domain being given a
+||| generator of codomain type
 |||
-||| This function takes a co-generator of domain type family using `auto`-argument based on the type.
+||| This function takes a co-generator of domain type family using
+||| `auto`-argument based on the type.
 ||| This generator does not shrink.
 |||
-||| Notice that this generator returns a non-showable value (unless you invent your own implementation).
+||| Notice that this generator returns a non-showable value (unless you invent
+||| your own implementation).
 export
-dargfun_ : {0 b : a -> Type} -> ({0 x : a} -> Cogen (b x)) => Gen c -> Gen ({0 x : a} -> b x -> c)
-dargfun_ bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen bg sz $ perturb x sd
+dargfun_ :
+     {0 b : a -> Type}
+  -> ({0 x : a} -> Cogen (b x))
+  => Gen c
+  -> Gen ({0 x : a} -> b x -> c)
+dargfun_ bg =
+  MkGen $ \sz, sd => singleton $ \x => value $ unGen bg sz $ perturb x sd
 
 ||| Generates a random dependently typed function with dependently typed domain
 ||| being given a generator of codomain type family
 |||
-||| This function takes a co-generator of domain type family using `auto`-argument based on the type.
+||| This function takes a co-generator of domain type family using
+||| `auto`-argument based on the type.
 ||| This generator does not shrink.
 |||
-||| Notice that this generator returns a non-showable value (unless you invent your own implementation).
+||| Notice that this generator returns a non-showable value (unless you invent
+||| your own implementation).
 export
-dargdepfun_ : {0 b : a -> Type} ->
-              {0 c : {0 x : a} -> b x -> Type} ->
-              ({0 x : a} -> Cogen (b x)) =>
-              ({0 x : a} -> (y : b x) -> Gen (c y)) -> Gen ({0 x : a} -> (y : b x) -> c y)
-dargdepfun_ bg = MkGen $ \sz, sd => singleton $ \x => value $ unGen (bg x) sz $ perturb x sd
+dargdepfun_ :
+     {0 b : a -> Type}
+  -> {0 c : {0 x : a} -> b x -> Type}
+  -> ({0 x : a} -> Cogen (b x))
+  => ({0 x : a} -> (y : b x) -> Gen (c y))
+   -> Gen ({0 x : a} -> (y : b x) -> c y)
+dargdepfun_ bg =
+  MkGen $ \sz, sd => singleton $ \x => value $ unGen (bg x) sz $ perturb x sd
 
 ----------------------------
 --- Shrinkable functions ---
 ----------------------------
 
--- Claessen, K. (2012, September). Shrinking and showing functions:(functional pearl).
--- In ACM SIGPLAN Notices (Vol. 47, No. 12, pp. 73-80). ACM.
+-- Claessen, K. Shrinking and showing functions:(functional pearl).
+-- In ACM SIGPLAN Notices (Vol. 47, No. 12, pp. 73-80). ACM. 2012, September
 
 infixr 5 :->
 
@@ -165,7 +193,9 @@ table (FPair f) = do
   (a, bc) <- table f
   (b, c) <- assert_total table bc
   pure ((a, b), c)
-table (FSum a b) = [(Left x, c) | (x, c) <- table a] ++ [(Right x, c) | (x, c) <- table b]
+table (FSum a b) =
+     [(Left x, c)  | (x, c) <- table a]
+  ++ [(Right x, c) | (x, c) <- table b]
 table (FMap _ g a) = mapFst g <$> table a
 
 public export
@@ -189,9 +219,11 @@ export
 ShrCogen a => ShrCogen b => ShrCogen (Either a b) where
   build f = FSum (build $ f . Left) (build $ f . Right)
 
-||| Implement `build` function for a type through isomorphism to a type that implements `ShrCogen`
+||| Implements `build` function for a type through isomorphism
+||| to a type that implements `ShrCogen`
 |||
-||| Notice that `via f g` will only be well-behaved if `g . f` and `f . g` are both identity functions.
+||| Notice that `via f g` will only be well-behaved if
+||| `g . f` and `f . g` are both identity functions.
 export
 via : ShrCogen b => (a -> b) -> (b -> a) -> (a -> c) -> a :-> c
 via a b f = FMap a b $ build $ f . b
@@ -251,7 +283,9 @@ apply' (FMap f _ g) a         = apply' g (f a)
 shrinkFn : (b -> Inf (Colist b)) -> a :-> b -> Colist $ a :-> b
 shrinkFn shr (FUnit a)  = FUnit <$> shr a
 shrinkFn _   FNil       = []
-shrinkFn shr (FPair f)  = shrinkFn (delay . assert_total (shrinkFn shr)) f <&> \case FNil => FNil; a => FPair a
+shrinkFn shr (FPair f)  =
+  shrinkFn (delay . assert_total (shrinkFn shr)) f <&>
+    \case FNil => FNil; a => FPair a
 shrinkFn shr (FSum a b) =
   map (\case FSum FNil FNil => FNil; x => x) $
     (if notFNil b then [ FSum a FNil ] else []) ++
@@ -266,7 +300,8 @@ shrinkFn shr (FSum a b) =
     notFNil : forall a, b. a :-> b -> Bool
     notFNil FNil = False
     notFNil _   = True
-shrinkFn shr (FMap f g a) = shrinkFn shr a <&> \case FNil => FNil; x => FMap f g x
+shrinkFn shr (FMap f g a) =
+  shrinkFn shr a <&> \case FNil => FNil; x => FMap f g x
 
 ||| The type for a randomly-generated function
 export
@@ -274,16 +309,19 @@ data Fn a b = MkFn b (a :-> Cotree b)
 
 export
 Show a => Show b => Show (Fn a b) where
-  show (MkFn xb xa) = unlines $ (table xa <&> showCase) ++ ["_ -> " ++ show xb] where
-    showCase : (a, Cotree b) -> String
-    showCase (lhs, rhs) = show lhs ++ " -> " ++ show rhs.value
+  show (MkFn xb xa) = unlines $ (table xa <&> showCase) ++ ["_ -> " ++ show xb]
+    where
+      showCase : (a, Cotree b) -> String
+      showCase (lhs, rhs) = show lhs ++ " -> " ++ show rhs.value
 
 ||| Generates a random function being given a generator of codomain type
 |||
 ||| The generated function is returned in a showable type `Fn a b`.
 |||
-||| This function takes a co-generator of domain type using `auto`-argument based on the type.
-||| This generator is shrinkable. For this, it requires additional `Arg` argument.
+||| This function takes a co-generator of domain type using `auto`-argument
+||| based on the type.
+||| This generator is shrinkable. For this, it requires additional `Arg`
+||| argument.
 export
 function : ShrCogen a => Gen b -> Gen (Fn a b)
 function gb = [| MkFn gb (genFn $ \a => cogen a gb) |] where
@@ -302,7 +340,8 @@ apply (MkFn b f) = maybe b value . apply' f
 |||
 ||| This is a wrapper of a `function` generator.
 ||| It may be useful sometimes, however, it returnes a non-showable type.
-||| To use functions generator in `forAll` in a property, use `function` generator.
+||| To use functions generator in `forAll` in a property, use `function`
+||| generator.
 public export
 function' : ShrCogen a => Gen b -> Gen (a -> b)
 function' = map apply . function
