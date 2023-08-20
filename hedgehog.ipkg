@@ -17,6 +17,8 @@ modules = Data.Bounded
         , Data.Cotree
         , Data.Tree
 
+        , Derive.Cogen
+
         , Hedgehog
         , Hedgehog.Internal.Config
         , Hedgehog.Internal.Function

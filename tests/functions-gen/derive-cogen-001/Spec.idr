@@ -1,14 +1,8 @@
 module Spec
 
-import Data.List1
-import Data.Vect
+import Derive.Cogen
 
 import Hedgehog
-
-import Language.Reflection
-import Language.Reflection.Derive
-import Language.Reflection.Syntax
-import Language.Reflection.Types
 
 %language ElabReflection
 
