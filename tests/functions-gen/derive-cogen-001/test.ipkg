@@ -1,4 +1,0 @@
-package a-test
-depends = hedgehog
-main = Spec
-executable = "a-test"

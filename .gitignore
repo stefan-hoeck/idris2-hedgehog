@@ -1,5 +1,2 @@
 build/
 *.*~
-tests/**/.pack_lock
-tests/**/failures
-tests/**/output
