@@ -157,9 +157,13 @@ nextDoubleR x y = let g = \l,u => let diff = u - l
                                    in mapFst (\f => l + f * diff) . nextDouble
                    in if x <= y then g x y else g y x
 
-||| Get a fast n-th alternative of a generator.
-||| The resulting generator is correlated to the original one.
--- idea taken from https://github.com/qfpl/hedgehog-fn/blob/2621548943ffa46c98f430cca6beeb9025ea3127/src/Hedgehog/Function/Internal.hs#L73
+||| `variant n` modifies the given seed `n` times.
+|||
+||| Modified seed gives different trajectory of generated values (e.g. using
+||| `next*` function) comparing to the original seed.
+|||
+||| The resulting generator is correlated to the original one, so it shouldn't
+||| be used when you need to get new seed for an independent computation.
 export
 variant : Bits64 -> Seed -> Seed
 variant n $ MkSeed seed gamma = MkSeed (seed + n) gamma

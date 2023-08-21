@@ -11,17 +11,66 @@ import Hedgehog.Internal.Seed
 
 %default total
 
+||| An interface for co-generators, somewhat an inverse of a generator
+|||
+||| Generators, roughly, using a random seed produce a value of a certain type.
+||| Co-generators conversly, roughtly speaking, produce a random seed using
+||| a value of a certain type.
+|||
+||| Due to technical properties of a seed type, instead of generating a seed
+||| value from stratch we perturb some existing value.
+||| Thus, a function of this interface produces a `Seed -> Seed` function
+||| being given a value of an appropriate type.
+|||
+||| In some understanding, co-generators classify values of a given type, which
+||| allow to tune generators of other types.
+||| This gives an ability to generate functions of type `a -> b` being given
+||| a generator of type `b` and a co-generator of type `a`.
+||| Having a value of type `a`, co-generator can deterministically tune
+||| the generator of type `b` by perturbing a random seed that is used by the
+||| generator and use its output as an output for a function.
 public export
 interface Cogen a where
   constructor MkCogen
   perturb : a -> Seed -> Seed
 
+||| This function perturbs the given seed both with `variant` and `split`.
+|||
 ||| This function is meant to be used between successive perturbations
-||| of different arguments of the same constructor
+||| of different arguments of the same constructor.
+|||
+||| It is designed to not commute when perturbation actions of a constructor's
+||| arguments do the same.
+||| Consider if `Cogen` interface is implemented for `Maybe a` and `Bool`
+||| in the following way:
+|||
+||| ```
+||| Cogen a => Cogen (Maybe a) where
+|||   perturb (Just x) = perturb x . variant 0
+|||   perturb Nothing  = variant 1
+|||
+||| Cogen Bool where
+|||   perturb False = variant 0
+|||   perturb True  = variant 1
+||| ```
+|||
+||| In this case values `Nothing` and `Just True` would give the same
+||| perturbation to a seed, which is not optimal. Insertion of `shiftArg`
+||| before each call for `perturb` of a constructor argument would give
+||| different perturbations for different combinations of constructors and
+||| their arguments (unless you are very unlucky).
+||| Combination of both `variant` and `split` in the `shiftArg` function
+||| gives relative independence on how `perturb` of a constructor argument
+||| type is implemented.
 export
 shiftArg : Seed -> Seed
 shiftArg = variant 33 . snd . split . variant 31
 
+||| Changes random distribution of a generator of type `b`
+||| based on a value of type `a`
+|||
+||| Change of distribution is done by a perturbation of a random seed,
+||| which is based on a `Cogen` implementation for the type `a`.
 export
 cogen : Cogen a => a -> Gen b -> Gen b
 cogen x g = MkGen $ \sz, sd => unGen g sz $ perturb x sd
@@ -170,6 +219,14 @@ dargdepfun_ bg =
 
 infixr 5 :->
 
+||| A type of reified partial functions that can be represented isomorphic
+||| to a function defined by pattern matching of an ADT
+||| or any type that *can* implement `Generic` (but does not have to).
+|||
+||| This type describes internal structure of such functions,
+||| e.g. storing separately "vertical" and "horizontal" matching,
+||| thus allowing to inspect, modify and simplify them,
+||| for example, for showing and shrinking.
 public export
 data (:->) : Type -> Type -> Type where
   FUnit : c -> () :-> c
@@ -303,7 +360,7 @@ shrinkFn shr (FSum a b) =
 shrinkFn shr (FMap f g a) =
   shrinkFn shr a <&> \case FNil => FNil; x => FMap f g x
 
-||| The type for a randomly-generated function
+||| The type for a total randomly-generated function
 export
 data Fn a b = MkFn b (a :-> Cotree b)
 
@@ -330,6 +387,7 @@ function gb = [| MkFn gb (genFn $ \a => cogen a gb) |] where
   genFn g = MkGen $ \sz, sd =>
     iterate (shrinkFn forest) . map (runGen sz sd) $ build g
 
+||| Coverts a showable randomly generated function to an actual function
 export
 apply : Fn a b -> a -> b
 apply (MkFn b f) = maybe b value . apply' f
