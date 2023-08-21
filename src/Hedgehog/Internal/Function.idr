@@ -2,12 +2,14 @@ module Hedgehog.Internal.Function
 
 import Data.Colist
 import Data.Cotree
+import public Data.Nat
 import Data.Either
 import Data.String
 
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Range
 import Hedgehog.Internal.Seed
+import Hedgehog.Internal.Util
 
 %default total
 
@@ -89,8 +91,11 @@ Cogen Bool where
   perturb False = variant 1
 
 export
-Cogen Nat where
-  perturb = variant . cast
+ToInteger a => Integral a => Cogen a where
+  perturb = variant . inversibleToNat . toInteger where
+    inversibleToNat : Integer -> Bits64
+    inversibleToNat n =
+      if n >= 0 then cast (2 * n) else cast (2 * negate n + 1)
 
 export
 Cogen Char where
@@ -118,23 +123,6 @@ export
 Cogen a => Cogen (List a) where
   perturb []      = variant 0
   perturb (x::xs) = perturb xs . shiftArg . perturb x . shiftArg . variant 1
-
-Integral a => Neg a => Ord a => Cast a (Bool, List Bool) where
-  cast n = if n >= 0 then (True, go [] n) else (False, go [] $ -n - 1) where
-    go : List Bool -> a -> List Bool
-    go bits x =
-      if x == 0
-        then bits
-        else go ((mod x 2 == 1) :: bits) (assert_smaller x $ div x 2)
-
-Integral a => Neg a => Cast (Bool, List Bool) a where
-  cast (sign, bits) = do
-    let body = foldl (\acc, b => acc * the a 2 + if b then 1 else 0) 0 bits
-    if sign then body else negate $ body + 1
-
-export
-Integral a => Neg a => Ord a => Cogen a where
-  perturb = perturb . cast {to=(Bool, List Bool)}
 
 export
 Cogen String where
@@ -314,12 +302,21 @@ ShrCogen (Equal x x) where
   build = via (const ()) (const Refl)
 
 export
-Integral a => Neg a => Ord a => ShrCogen a where
-  build = via {b=(Bool, List Bool)} cast cast
+ToInteger a => Integral a => ShrCogen a where
+  build = via (toBits . toInteger) (fromInteger . fromBits) where
 
-export
-ShrCogen Nat where
-  build = via {b=Integer} cast cast
+    toBits : Integer -> (Bool, List Bool)
+    toBits n = if n >= 0 then (True, go [] n) else (False, go [] $ -n - 1) where
+      go : List Bool -> Integer -> List Bool
+      go bits x =
+        if x == 0
+          then bits
+          else go ((mod x 2 == 1) :: bits) (assert_smaller x $ div x 2)
+
+    fromBits : (Bool, List Bool) -> Integer
+    fromBits (sign, bits) = do
+      let body = foldl (\acc, b => acc * 2 + if b then 1 else 0) 0 bits
+      if sign then body else negate $ body + 1
 
 export
 ShrCogen Char where
