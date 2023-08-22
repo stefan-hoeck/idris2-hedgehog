@@ -1,0 +1,6 @@
+package hedgehog-tests
+version = 0.1.0
+executable = runtests
+
+depends = hedgehog
+main = Tests

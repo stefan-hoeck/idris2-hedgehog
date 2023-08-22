@@ -2,8 +2,6 @@ module Hedgehog.Internal.Runner
 
 import Data.Colist
 import Data.Cotree
-import Data.IORef
-import Data.List
 import Hedgehog.Internal.Config
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Options
@@ -121,16 +119,17 @@ checkReport cfg si0 se0 test updateUI =
                       let cover1 = journalCoverage journal <+> cover
                        in loop k (tests + 1) nextSize s1 cover1 conf
 
-checkTerm :  HasIO io
-          => Terminal
+checkTerm :  HasTerminal m
+          => Monad m
+          => Terminal m
           -> UseColor
           -> Maybe PropertyName
           -> Size
           -> Seed
           -> Property
-          -> io (Report Result)
+          -> m (Report Result)
 checkTerm term color name si se prop =
-  do result <- checkReport {m = io} prop.config si se prop.test $ \prog =>
+  do result <- checkReport {m} prop.config si se prop.test $ \prog =>
                if multOf100 prog.tests
                   then let ppprog = renderProgress color name prog
                         in case prog.status of
@@ -141,18 +140,26 @@ checkTerm term color name si se prop =
      putOut term (renderResult color name result)
      pure result
 
-checkWith :  HasIO io
-          => Terminal
+checkWith :  CanInitSeed m
+          => HasTerminal m
+          => Monad m
+          => Terminal m
           -> UseColor
           -> Maybe PropertyName
           -> Property
-          -> io (Report Result)
+          -> m (Report Result)
 checkWith term color name prop =
   initSMGen >>= \se => checkTerm term color name 0 se prop
 
 ||| Check a property.
 export
-checkNamed : HasIO io => PropertyName -> Property -> io Bool
+checkNamed :  HasConfig m
+           => CanInitSeed m
+           => HasTerminal m
+           => Monad m
+           => PropertyName
+           -> Property
+           -> m Bool
 checkNamed name prop = do
   color <- detectColor
   term  <- console
@@ -161,7 +168,12 @@ checkNamed name prop = do
 
 ||| Check a property.
 export
-check : HasIO io => Property -> io Bool
+check :  HasConfig m
+      => CanInitSeed m
+      => HasTerminal m
+      => Monad m
+      => Property
+      -> m Bool
 check prop = do
   color <- detectColor
   term  <- console
@@ -170,30 +182,44 @@ check prop = do
 
 ||| Check a property using a specific size and seed.
 export
-recheck : HasIO io => Size -> Seed -> Property -> io ()
+recheck :  HasConfig m
+        => HasTerminal m
+        => Monad m
+        => Size
+        -> Seed
+        -> Property
+        -> m ()
 recheck si se prop = do
   color <- detectColor
   term  <- console
   _     <- checkTerm term color Nothing si se (withTests 1 prop)
   pure ()
 
-checkGroupWith :  Terminal
+checkGroupWith :  CanInitSeed m
+               => HasTerminal m
+               => Monad m
+               => Terminal m
                -> UseColor
                -> List (PropertyName, Property)
-               -> IO Summary
+               -> m Summary
 checkGroupWith term color = run neutral
-  where run : Summary -> List (PropertyName, Property) -> IO Summary
+  where run : Summary -> List (PropertyName, Property) -> m Summary
         run s [] = pure s
         run s ((pn,p) :: ps) = do rep  <- checkWith term color (Just pn) p
                                   run (s <+> fromResult rep.status) ps
 
 export
-checkGroup : HasIO io => Group -> io Bool
+checkGroup :  HasConfig m
+           => CanInitSeed m
+           => HasTerminal m
+           => Monad m
+           => Group
+           -> m Bool
 checkGroup (MkGroup group props) =
   do term    <- console
      putOut term $ "━━━ " ++ unTag group ++ " ━━━\n"
      color   <- detectColor
-     summary <- liftIO $ checkGroupWith term color props
+     summary <- checkGroupWith term color props
      putOut term (renderSummary color summary)
      pure $ summary.failed == 0
 

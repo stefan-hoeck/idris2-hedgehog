@@ -18,7 +18,7 @@ mutual
     value  : a
     forest : Inf (Coforest a)
 
-  ||| A potentially finit stream of trees
+  ||| A potentially finite stream of trees
   public export
   Coforest : Type -> Type
   Coforest = Colist . Cotree
