@@ -2,8 +2,8 @@ module Hedgehog.Internal.Function
 
 import Data.Colist
 import Data.Cotree
-import public Data.Nat
 import Data.Either
+import Data.Nat
 import Data.String
 
 import Hedgehog.Internal.Gen
@@ -91,15 +91,40 @@ Cogen Bool where
   perturb False = variant 1
 
 export
-ToInteger a => Integral a => Cogen a where
-  perturb = variant . inversibleToNat . toInteger where
-    inversibleToNat : Integer -> Bits64
-    inversibleToNat n =
+Cogen Nat where
+  perturb = variant . cast
+
+export
+Cogen Integer where
+  perturb = variant . niceVariant where
+    niceVariant : Integer -> Bits64
+    niceVariant n =
       if n >= 0 then cast (2 * n) else cast (2 * negate n + 1)
 
 export
-Cogen Char where
-  perturb = variant . cast
+Cogen Bits64 where
+  perturb = variant
+
+export
+Cogen Bits16 where perturb = variant . cast
+
+export
+Cogen Bits8 where perturb = variant . cast
+
+export
+Cogen Int64 where perturb = perturb . cast {to=Integer}
+
+export
+Cogen Int16 where perturb = perturb . cast {to=Integer}
+
+export
+Cogen Int8 where perturb = perturb . cast {to=Integer}
+
+export
+Cogen Int where perturb = perturb . cast {to=Integer}
+
+export
+Cogen Char where perturb = variant . cast
 
 export
 Cogen Void where
@@ -302,8 +327,8 @@ ShrCogen (Equal x x) where
   build = via (const ()) (const Refl)
 
 export
-ToInteger a => Integral a => ShrCogen a where
-  build = via (toBits . toInteger) (fromInteger . fromBits) where
+ShrCogen Integer where
+  build = via toBits fromBits where
 
     toBits : Integer -> (Bool, List Bool)
     toBits n = if n >= 0 then (True, go [] n) else (False, go [] $ -n - 1) where
@@ -319,12 +344,34 @@ ToInteger a => Integral a => ShrCogen a where
       if sign then body else negate $ body + 1
 
 export
-ShrCogen Char where
-  build = via {b=Integer} cast cast
+ShrCogen Nat where build = via {b=Integer} cast cast
 
 export
-ShrCogen String where
-  build = via fastUnpack fastPack
+ShrCogen Int where build = via {b=Integer} cast cast
+
+export
+ShrCogen Int8 where build = via {b=Integer} cast cast
+
+export
+ShrCogen Int16 where build = via {b=Integer} cast cast
+
+export
+ShrCogen Int64 where build = via {b=Integer} cast cast
+
+export
+ShrCogen Bits8 where build = via {b=Nat} cast cast
+
+export
+ShrCogen Bits16 where build = via {b=Nat} cast cast
+
+export
+ShrCogen Bits64 where build = via {b=Nat} cast cast
+
+export
+ShrCogen Char where build = via {b=Nat} cast cast
+
+export
+ShrCogen String where build = via fastUnpack fastPack
 
 apply' : a :-> b -> a -> Maybe b
 apply' (FUnit c)    ()        = Just c

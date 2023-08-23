@@ -25,16 +25,16 @@ simpleFunPrint = recheckGivenOutput expected prop 4 (smGen 100) where
       forAll 1 =
         args: [0, 1, 2, 3, 100, 1000, 10000, 100000, 10000000, 100000000]
       forAll 2 =
-        vals: [617, 81, 970, 65, 17, 450, 448, 133, 410, 791]
+        vals: [617, 730, 81, 100, 616, 76, 835, 404, 943, 729]
       This failure can be reproduced by running:
         > recheck
     """
 
 export
 simpleFunNeg : Property
-simpleFunNeg = recheckGivenOutput expected prop 26 seed where
+simpleFunNeg = recheckGivenOutput expected prop 0 seed where
   seed : Seed
-  seed = MkSeed 18147077199939086501 16052916774213148059
+  seed = MkSeed 9961102074462960391 5599095101378422999
   prop : Property
   prop = property $ do
     fn <- forAll @{FnStub} $ function_ $ nat $ constant 0 999
@@ -46,7 +46,7 @@ simpleFunNeg = recheckGivenOutput expected prop 26 seed where
       forAll 0 =
         <fn>
       forAll 1 =
-        223554967
+        86056943
       This failure can be reproduced by running:
         > recheck
     """
