@@ -157,6 +157,17 @@ nextDoubleR x y = let g = \l,u => let diff = u - l
                                    in mapFst (\f => l + f * diff) . nextDouble
                    in if x <= y then g x y else g y x
 
+||| `variant n` modifies the given seed `n` times.
+|||
+||| Modified seed gives different trajectory of generated values (e.g. using
+||| `next*` function) comparing to the original seed.
+|||
+||| The resulting generator is correlated to the original one, so it shouldn't
+||| be used when you need to get new seed for an independent computation.
+export
+variant : Bits64 -> Seed -> Seed
+variant n $ MkSeed seed gamma = MkSeed (seed + n) gamma
+
 --------------------------------------------------------------------------------
 --          Generating Integer Ranges
 --------------------------------------------------------------------------------
