@@ -19,9 +19,11 @@ halves = map fromInteger . halvesInteger . toInteger
 public export
 towardsInteger : (destination, val : Integer) -> Colist Integer
 towardsInteger dest x =
-  if dest == x then []
-               else let diff = (x `safeDiv` 2) - (dest `safeDiv` 2)
-                     in dest `consNub` map (x -) (halvesInteger diff)
+  if dest == x
+     then []
+     else
+       let diff := (x `safeDiv` 2) - (dest `safeDiv` 2)
+        in dest `consNub` map (x -) (halvesInteger diff)
 
 ||| Shrink an integral number by edging towards a destination.
 |||
@@ -37,28 +39,34 @@ towardsInteger dest x =
 ||| Note we always try the destination first, as that is the optimal shrink.
 public export
 towards : ToInteger a => (destination, val : a) -> Colist a
-towards dest x = map fromInteger
-               $ towardsInteger (toInteger dest) (toInteger x)
+towards dest x =
+  map
+    fromInteger
+    (towardsInteger (toInteger dest) (toInteger x))
 
 public export
 towardsDouble : Double -> Double -> Colist Double
 towardsDouble destination x =
   if destination == x
     then []
-    else let diff = x - destination
-             ok = (/= x)
-          in takeWhile ok .  map (x -) $ iterate (/ 2) diff
+    else
+      let diff := x - destination
+          ok   := (/= x)
+       in takeWhile ok .  map (x -) $ iterate (/ 2) diff
 
 public export
 removes : Nat -> List a -> Colist $ List a
 removes 0     _ = []
 removes (S n) x = run (S n) [] x
-  where run : Nat -> List a -> List a -> Colist $ List a
-        run 0     _   []       = [[]]
-        run 0     xs (y :: ys) = let rest = run n [y] ys
-                                  in (y :: ys) :: map (prepRev xs) rest
-        run (S k) _  []        = []
-        run (S k) xs (y :: ys) = run k (y :: xs) ys
+
+  where
+    run : Nat -> List a -> List a -> Colist $ List a
+    run 0     _   []       = [[]]
+    run 0     xs (y :: ys) =
+      let rest := run n [y] ys
+       in (y :: ys) :: map (prepRev xs) rest
+    run (S k) _  []        = []
+    run (S k) xs (y :: ys) = run k (y :: xs) ys
 
 ||| All ways a list can be split
 |||
@@ -67,9 +75,11 @@ public export
 splits : (a -> b) -> List a -> List (List a, b, List a)
 splits _ []        = []
 splits f (x :: xs) = run [] x xs
-  where run : List a -> a -> List a -> List (List a, b, List a)
-        run xs x []          = [(xs,f x,[])]
-        run xs x l@(y :: ys) = (xs,f x,l) :: run (x::xs) y ys
+
+  where
+    run : List a -> a -> List a -> List (List a, b, List a)
+    run xs x []          = [(xs,f x,[])]
+    run xs x l@(y :: ys) = (xs,f x,l) :: run (x::xs) y ys
 
 ||| Shrink a list by edging towards the empty list.
 |||
@@ -88,16 +98,19 @@ list ml xs = let diff = length xs `minus` ml
 public export
 interleave : (minLength : Nat) -> List (Cotree a) -> Cotree (List a)
 interleave ml ts = MkCotree (map value ts) $ dropThenShrink (list ml ts)
-  where shrinkOne :  List (List (Cotree a), Coforest a, List (Cotree a))
-                  -> Coforest (List a)
-        shrinkOne []                      = []
-        shrinkOne ((xs,[]   ,ys) :: rest) = shrinkOne rest
-        shrinkOne ((xs,t::ts,ys) :: rest) = interleave ml (prepRev xs (t::ys)) ::
-                                            shrinkOne ((xs,ts,ys) :: rest)
 
-        dropThenShrink : Colist (List $ Cotree a) -> Coforest (List a)
-        dropThenShrink []        = shrinkOne (splits (\t => t.forest) ts)
-        dropThenShrink (x :: xs) = interleave ml x :: dropThenShrink xs
+  where
+    shrinkOne :
+         List (List (Cotree a), Coforest a, List (Cotree a))
+      -> Coforest (List a)
+    shrinkOne []                      = []
+    shrinkOne ((xs,[]   ,ys) :: rest) = shrinkOne rest
+    shrinkOne ((xs,t::ts,ys) :: rest) =
+      interleave ml (prepRev xs (t::ys)) :: shrinkOne ((xs,ts,ys) :: rest)
+
+    dropThenShrink : Colist (List $ Cotree a) -> Coforest (List a)
+    dropThenShrink []        = shrinkOne (splits (\t => t.forest) ts)
+    dropThenShrink (x :: xs) = interleave ml x :: dropThenShrink xs
 
 --------------------------------------------------------------------------------
 --          Tests

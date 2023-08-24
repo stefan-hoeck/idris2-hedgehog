@@ -29,14 +29,16 @@ printZFun = recheckGivenOutput expected prop 0 seed where
   seed = MkSeed 15646808624686066109 7037936686351694591
   prop : Property
   prop = property $ do
-    fn <- forAllWith (const "<fn>") $
-            dargfun_ {b = \n => Z n String} $ nat $ constant 0 100
+    fn <-
+      forAllWith (const "<fn>") $
+        dargfun_ {b = \n => Z n String} $ nat $ constant 0 100
     annotate "fn Z1 = \{show $ fn Z1}"
     annotate "fn (Z2 (YA \"foo\") [Z1]) = \{show $ fn (Z2 (YA "foo") [Z1])}"
     annotate "fn (Z2 (YA \"lala\") [Z1]) = \{show $ fn (Z2 (YA "lala") [Z1])}"
     assert $ fn Z1 == 0 || fn (Z2 (YA "lala") [Z1]) == 0
   expected : String
-  expected = """
+  expected =
+    """
     ✗ <interactive> failed after 1 test.
       forAll 0 =
         <fn>

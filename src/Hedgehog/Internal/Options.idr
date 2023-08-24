@@ -28,48 +28,51 @@ parseNat s =
 
 toConfidence : Nat -> Either (List String) Confidence
 toConfidence n =
-  let c = cast {to = Bits64} n
+  let c := cast {to = Bits64} n
    in case decEq (c >= 2) True of
         (Yes prf)   => Right $ MkConfidence c prf
         (No contra) => Left [ #"Not a valid confidence value: \#{show n}"# ]
 
 setTests : String -> Config -> Either (List String) Config
 setTests s c =
-  map (\n => { numTests := Just $ Relaxed $ MkTagged n} c)
-      (parseNat s)
+  map
+    (\n => { numTests := Just $ Relaxed $ MkTagged n} c)
+    (parseNat s)
 
 setShrinks : String -> Config -> Either (List String) Config
 setShrinks s c =
-  map (\n => { numShrinks := Just $ MkTagged n} c)
-      (parseNat s)
+  map
+    (\n => { numShrinks := Just $ MkTagged n} c)
+    (parseNat s)
 
 setConfidence : String -> Config -> Either (List String) Config
 setConfidence s c =
-  map (\n => { confidence := Just n} c)
-      (parseNat s >>= toConfidence)
+  map
+    (\n => { confidence := Just n} c)
+    (parseNat s >>= toConfidence)
 
 setTestsForced : String -> Config -> Either (List String) Config
 setTestsForced s c =
-  map (\n => { numTests := Just $ Forced $ MkTagged n} c)
-      (parseNat s)
+  map
+    (\n => { numTests := Just $ Forced $ MkTagged n} c)
+    (parseNat s)
 
 setHelp : Config -> Either (List String) Config
 setHelp = Right . { printHelp := True }
 
 descs : List $ OptDescr (Config -> Either (List String) Config)
-descs = [ MkOpt ['n'] ["testlimit"] (ReqArg setTests "<tests>")
-            "number of tests to be passed by each property"
-        , MkOpt ['N'] ["testlimit!"] (ReqArg setTestsForced "<tests>")
-            "like -n but includes tests that are only run once"
-        , MkOpt ['s'] ["shrinklimit"] (ReqArg setShrinks "<shrinks>")
-            "maximal number of shrinks in case of a failed test"
-        , MkOpt ['c'] ["confidence"] (ReqArg setConfidence "<confidence>")
-            "acceptable occurence of false positives"
-        , MkOpt [] ["--help"] (NoArg setHelp)
-            "print this help text"
-        ]
-
-
+descs =
+  [ MkOpt ['n'] ["testlimit"] (ReqArg setTests "<tests>")
+      "number of tests to be passed by each property"
+  , MkOpt ['N'] ["testlimit!"] (ReqArg setTestsForced "<tests>")
+      "like -n but includes tests that are only run once"
+  , MkOpt ['s'] ["shrinklimit"] (ReqArg setShrinks "<shrinks>")
+      "maximal number of shrinks in case of a failed test"
+  , MkOpt ['c'] ["confidence"] (ReqArg setConfidence "<confidence>")
+      "acceptable occurence of false positives"
+  , MkOpt [] ["--help"] (NoArg setHelp)
+      "print this help text"
+  ]
 
 export
 info : String
@@ -79,8 +82,8 @@ export
 applyArgs : List String -> Either (List String) Config
 applyArgs args =
   case getOpt Permute descs args of
-       MkResult opts _ _ [] => foldl (>>=) (Right init) opts
-       MkResult _    _ _ e  => Left e
+    MkResult opts _ _ [] => foldl (>>=) (Right init) opts
+    MkResult _    _ _ e  => Left e
 
 export
 applyConfig : Config -> Group -> Group

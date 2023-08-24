@@ -65,15 +65,17 @@ Applicative Gen where
   pure a = MkGen $ \_,_ => pure a
 
   MkGen ff <*> MkGen fa =
-    MkGen $ \si,se => let (se1,se2) = split se
-                     in interleave (ff si se1) (fa si se2)
+    MkGen $ \si,se =>
+      let (se1,se2) := split se
+       in interleave (ff si se1) (fa si se2)
 
 public export
 Monad Gen where
   MkGen run >>= f =
-    MkGen $ \si,se => let (se1,se2) = split se
-                          ta        = run si se1
-                       in bind ta (runGen si se2 . f)
+    MkGen $ \si,se =>
+      let (se1,se2) := split se
+          ta        := run si se1
+       in bind ta (runGen si se2 . f)
 
 --------------------------------------------------------------------------------
 --          Combinators
@@ -138,8 +140,8 @@ small = scale golden
 public export
 integral_ : ToInteger a => Range a -> Gen a
 integral_ range = generate $ \si,se =>
-    let (x, y) = bounds si range
-     in fromInteger . fst $ nextIntegerR (toInteger x, toInteger y) se
+  let (x, y) := bounds si range
+   in fromInteger . fst $ nextIntegerR (toInteger x, toInteger y) se
 
 ||| Generates a random integral number in the given @[inclusive,inclusive]@ range.
 |||
@@ -321,10 +323,13 @@ size = integral
 ||| Generates a random (Fin n) in the given range.
 public export
 fin : {n : _} -> Range (Fin n) -> Gen (Fin n)
-fin range = let rangeInt = map finToInteger range
-             in map toFin (integer rangeInt)
-  where toFin : Integer -> Fin n
-        toFin k = fromMaybe range.origin (integerToFin k n)
+fin range =
+  let rangeInt := map finToInteger range
+   in map toFin (integer rangeInt)
+
+  where
+    toFin : Integer -> Fin n
+    toFin k = fromMaybe range.origin (integerToFin k n)
 
 --------------------------------------------------------------------------------
 --          Floating Point
@@ -335,8 +340,10 @@ fin range = let rangeInt = map finToInteger range
 ||| This generator does not shrink.
 export
 double_ : Range Double -> Gen Double
-double_ range = generate $ \si,se => let (x, y) = bounds si range
-                                      in fst $ nextDoubleR x y se
+double_ range =
+  generate $ \si,se =>
+    let (x, y) := bounds si range
+     in fst $ nextDoubleR x y se
 
 ||| Generates a random floating-point number in the given range.
 |||
@@ -396,17 +403,19 @@ choice_ vs = element_ vs >>= id
 public export
 frequency : Vect (S k) (Nat, Gen a) -> Gen a
 frequency ps =
-  let acc    = scanl1 addFst $ map (mapFst toInteger) ps
-      gen    = integral_ . constant 0 . fst $ last acc
-      lower  = \n => takeWhile (< n) (fromFoldable $ map fst acc)
+  let acc   := scanl1 addFst $ map (mapFst toInteger) ps
+      gen   := integral_ . constant 0 . fst $ last acc
+      lower := \n => takeWhile (< n) (fromFoldable $ map fst acc)
 
   in shrink lower gen >>= choose acc
-  where addFst : (Integer,x) -> (Integer,x) -> (Integer,x)
-        addFst (x,_) (y,v) = (x + y,v)
 
-        choose : Vect n (Integer, Gen a) -> Integer -> Gen a
-        choose []             _ = snd $ head ps
-        choose ((i, v) :: ps) k = if i >= k then v else choose ps k
+  where
+    addFst : (Integer,x) -> (Integer,x) -> (Integer,x)
+    addFst (x,_) (y,v) = (x + y,v)
+
+    choose : Vect n (Integer, Gen a) -> Integer -> Gen a
+    choose []             _ = snd $ head ps
+    choose ((i, v) :: ps) k = if i >= k then v else choose ps k
 
 ||| Generates a random boolean.
 |||
@@ -501,10 +510,12 @@ printableLatin = frequency [ (95, printableAscii), (96, charc '\160' '\255') ]
 ||| `'\0'..'\1114111'` (excluding '\55296'..'\57343', '\65534', '\65535')`
 export
 unicode : Gen Char
-unicode = frequency [ (55296, charc '\0' '\55295')
-                    , (8190, charc '\57344' '\65533')
-                    , (1048576, charc '\65536' '\1114111')
-                    ]
+unicode =
+  frequency
+    [ (55296, charc '\0' '\55295')
+    , (8190, charc '\57344' '\65533')
+    , (1048576, charc '\65536' '\1114111')
+    ]
 
 ||| Generates a printable Unicode character, excluding noncharacters
 ||| and invalid standalone surrogates:
@@ -533,18 +544,25 @@ unicodeAll = charc '\0' '\1114111'
 ||| Generates a 'Nothing' some of the time.
 export
 maybe : Gen a -> Gen (Maybe a)
-maybe gen = sized $ \s => frequency [ (2, constant Nothing)
-                                    , (S s.size, Just <$> gen)
-                                    ]
+maybe gen =
+  sized $ \s =>
+    frequency
+      [ (2, constant Nothing)
+      , (S s.size, Just <$> gen)
+      ]
 
 ||| Generates either an 'a' or a 'b'.
 |||
 ||| As the size grows, this generator generates @Right@s more often than @Left@s.
 export
 either : Gen a -> Gen b -> Gen (Either a b)
-either genA genB = sized $ \s => frequency [ (2, Left <$> genA)
-                                           , (S s.size, Right <$> genB)
-                                           ]
+either genA genB =
+  sized $ \s =>
+    frequency
+      [ (2, Left <$> genA)
+      , (S s.size, Right <$> genB)
+      ]
+
 ||| Generates either an 'a' or a 'b', without bias.
 |||
 ||| This generator generates as many @Right@s as it does @Left@s.
@@ -562,9 +580,11 @@ vect (S k) g = [| g :: vect k g |]
 export
 list : Range Nat -> Gen a -> Gen (List a)
 list range gen =
-  sized $ \si => let minLength = lowerBound si range
-                  in  mapGen (interleave minLength . value)
-                    $ integral_ range >>= (\n => map toList (vect n (toTree gen)))
+  sized $ \si =>
+    let minLength := lowerBound si range
+     in mapGen (interleave minLength . value) $
+        integral_ range >>= (\n => map toList (vect n (toTree gen)))
+
 ||| Generates a non-empty list using a `Range` to determine the length.
 export
 list1 : Range Nat -> Gen a -> Gen (List1 a)
@@ -583,7 +603,7 @@ collapseNPV : NP (K a) ks -> {auto 0 _ : NonEmpty ks} -> (k ** Vect (S k) a)
 collapseNPV {ks = _} [] impossible
 collapseNPV {ks = _} (v::[]) = (0 ** [v])
 collapseNPV {ks = t::t2::ts}(v::v2::vs) =
-  let (k ** vs2) = collapseNPV {ks = t2 :: ts} (v2 :: vs)
+  let (k ** vs2) := collapseNPV {ks = t2 :: ts} (v2 :: vs)
    in (S k ** (v :: vs2))
 
 ||| Turns an n-ary product of generators into a generator
@@ -598,8 +618,9 @@ np = sequenceNP
 ||| in the list.
 export
 ns : NP Gen ts -> {auto 0 prf : NonEmpty ts} -> Gen (NS I ts)
-ns np = let (_ ** vs) = collapseNPV (apInjsNP_ np)
-         in choice (map sequenceNS vs)
+ns np =
+  let (_ ** vs) := collapseNPV (apInjsNP_ np)
+   in choice (map sequenceNS vs)
 
 ||| Turns an n-ary product of generators into a generator
 ||| of n-ary sums of the same type. This is a generalisation
@@ -607,13 +628,15 @@ ns np = let (_ ** vs) = collapseNPV (apInjsNP_ np)
 ||| sum type.
 export
 ns_ : NP Gen ts -> {auto 0 prf : NonEmpty ts} -> Gen (NS I ts)
-ns_ np = let (_ ** vs) = collapseNPV (apInjsNP_ np)
-         in choice_ (map sequenceNS vs)
+ns_ np =
+  let (_ ** vs) := collapseNPV (apInjsNP_ np)
+   in choice_ (map sequenceNS vs)
 
 export
 sop : POP Gen tss -> {auto 0 prf : NonEmpty tss} -> Gen (SOP I tss)
-sop p = let (_ ** vs) = collapseNPV {a = SOP Gen tss} (apInjsPOP_ p)
-         in choice (map sequenceSOP vs)
+sop p =
+  let (_ ** vs) := collapseNPV {a = SOP Gen tss} (apInjsPOP_ p)
+   in choice (map sequenceSOP vs)
 
 --------------------------------------------------------------------------------
 --          Sampling
@@ -625,12 +648,15 @@ sop p = let (_ ** vs) = collapseNPV {a = SOP Gen tss} (apInjsPOP_ p)
 ||| Use 'print' to generate a value from a random seed.
 export
 printWith : (HasIO io, Show a) => Size -> Seed -> Gen a -> io ()
-printWith si se gen = let (MkCotree v fo) = runGen si se gen
-                          shrinks         = value <$> take 1000 fo
-                       in do putStrLn "=== Outcome ==="
-                             putStrLn (show v)
-                             putStrLn "=== Shrinks ==="
-                             traverse_ printLn shrinks
+printWith si se gen =
+  let (MkCotree v fo) := runGen si se gen
+      shrinks         := value <$> take 1000 fo
+   in do
+     putStrLn "=== Outcome ==="
+     putStrLn (show v)
+     putStrLn "=== Shrinks ==="
+     traverse_ printLn shrinks
+
 ||| Run a generator with a random seed and print the outcome, and the first
 ||| level of shrinks.
 |||
@@ -656,13 +682,14 @@ sample gen = (value . gen.unGen 100) <$> initSMGen
 ||| Render the shrink tree produced by a generator, for the given size and
 ||| seed up to the given depth and width.
 export
-renderTree :  Show a
-           => (maxDepth : Nat)
-           -> (maxWidth : Nat)
-           -> Size
-           -> Seed
-           -> Gen a
-           -> String
+renderTree :
+     {auto _ : Show a}
+  -> (maxDepth : Nat)
+  -> (maxWidth : Nat)
+  -> Size
+  -> Seed
+  -> Gen a
+  -> String
 renderTree md mw si se = drawTree
                        . map show
                        . toTree md mw
@@ -673,14 +700,15 @@ renderTree md mw si se = drawTree
 |||
 ||| Use 'printTree' to generate a value from a random seed.
 export
-printTreeWith :  Show a
-              => HasIO io
-              => (maxDepth : Nat)
-              -> (maxWidth : Nat)
-              -> Size
-              -> Seed
-              -> Gen a
-              -> io ()
+printTreeWith :
+     {auto _ : Show a}
+  -> {auto _ : HasIO io}
+  -> (maxDepth : Nat)
+  -> (maxWidth : Nat)
+  -> Size
+  -> Seed
+  -> Gen a
+  -> io ()
 printTreeWith md mw si se = putStrLn . renderTree md mw si se
 
 ||| Run a generator with a random seed and print the resulting shrink tree.
@@ -701,10 +729,11 @@ printTreeWith md mw si se = putStrLn . renderTree md mw si se
 |||   /This may not terminate when the tree is very large./
 |||
 export
-printTree :  Show a
-          => HasIO io
-          => (maxDepth : Nat)
-          -> (maxWidth : Nat)
-          -> Gen a
-          -> io ()
+printTree :
+     {auto _ : Show a}
+  -> {auto _ : HasIO io}
+  -> (maxDepth : Nat)
+  -> (maxWidth : Nat)
+  -> Gen a
+  -> io ()
 printTree md mw gen = initSMGen >>= \se => printTreeWith md mw 100 se gen

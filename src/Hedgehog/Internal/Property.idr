@@ -21,17 +21,18 @@ import Text.Show.Pretty
 --------------------------------------------------------------------------------
 
 public export
-data Tag = ConfidenceTag
-         | CoverCountTag
-         | CoverPercentageTag
-         | GroupNameTag
-         | LabelNameTag
-         | PropertyCountTag
-         | PropertyNameTag
-         | ShrinkCountTag
-         | ShrinkLimitTag
-         | TestCountTag
-         | TestLimitTag
+data Tag =
+    ConfidenceTag
+  | CoverCountTag
+  | CoverPercentageTag
+  | GroupNameTag
+  | LabelNameTag
+  | PropertyCountTag
+  | PropertyNameTag
+  | ShrinkCountTag
+  | ShrinkLimitTag
+  | TestCountTag
+  | TestLimitTag
 
 %runElab derive "Tag" [Show,Eq,Ord]
 
@@ -111,9 +112,10 @@ record Confidence where
 
 namespace Confidence
   public export
-  fromInteger :  (n : Integer)
-              -> {auto 0 prf : the Bits64 (fromInteger n) >= 2 = True}
-              -> Confidence
+  fromInteger :
+       (n : Integer)
+    -> {auto 0 prf : the Bits64 (fromInteger n) >= 2 = True}
+    -> Confidence
   fromInteger n = MkConfidence (fromInteger n) prf
 
 ||| The relative number of tests which are covered by a classifier.
@@ -189,8 +191,8 @@ Foldable Label where
 
 public export
 Traversable Label where
-  traverse f l = (\v => {labelAnnotation := v} l) <$>
-                 f l.labelAnnotation
+  traverse f l =
+    (\v => {labelAnnotation := v} l) <$> f l.labelAnnotation
 
 ||| This semigroup is right biased. The name, location and percentage from the
 ||| rightmost `Label` will be kept. This shouldn't be a problem since the
@@ -201,9 +203,10 @@ Semigroup a => Semigroup (Label a) where
 
 ||| Log messages which are recorded during a test run.
 public export
-data Log = Annotation (Lazy String)
-         | Footnote (Lazy String)
-         | LogLabel (Label Cover)
+data Log : Type where
+  Annotation : Lazy String -> Log
+  Footnote   : Lazy String -> Log
+  LogLabel   : Label Cover -> Log
 
 %runElab derive "Log" [Show,Eq]
 
@@ -248,8 +251,8 @@ annotations : Coverage a -> List a
 annotations = map (labelAnnotation . snd) . coverageLabels
 
 mergeWith :
-     Ord k
-  => SnocList (k,v)
+     {auto _ : Ord k}
+  -> SnocList (k,v)
   -> (v -> v -> v)
   -> List (k,v)
   -> List (k,v)
@@ -290,10 +293,10 @@ Traversable Coverage where
 --------------------------------------------------------------------------------
 
 public export
-data TerminationCriteria =
-    EarlyTermination Confidence TestLimit
-  | NoEarlyTermination Confidence TestLimit
-  | NoConfidenceTermination TestLimit
+data TerminationCriteria : Type where
+  EarlyTermination        : Confidence -> TestLimit -> TerminationCriteria
+  NoEarlyTermination      : Confidence -> TestLimit -> TerminationCriteria
+  NoConfidenceTermination : TestLimit -> TerminationCriteria
 
 %runElab derive "TerminationCriteria" [Show,Eq]
 
@@ -327,8 +330,8 @@ defaultConfidence = Confidence.fromInteger 1000000000
 public export
 defaultConfig : PropertyConfig
 defaultConfig =
-  MkPropertyConfig {
-      shrinkLimit = 1000
+  MkPropertyConfig
+    { shrinkLimit = 1000
     , terminationCriteria = NoConfidenceTermination defaultMinTests
     }
 
@@ -402,9 +405,9 @@ failDiff : Show a => Show b => Applicative m => a -> b -> TestT m ()
 failDiff x y =
   case valueDiff <$> reify x <*> reify y of
     Nothing =>
-        failWith Nothing $
-        unlines $ [
-            "Failed"
+      failWith Nothing $
+        unlines
+          [ "Failed"
           , "━━ lhs ━━"
           , ppShow x
           , "━━ rhs ━━"
@@ -412,12 +415,14 @@ failDiff x y =
           ]
 
     Just vdiff@(Same _) =>
-        failWith (Just $
-          MkDiff "━━━ Failed ("  "" "no differences" "" ") ━━━" vdiff) ""
+      failWith
+        (Just $ MkDiff "━━━ Failed ("  "" "no differences" "" ") ━━━" vdiff)
+        ""
 
     Just vdiff =>
-        failWith (Just $
-          MkDiff "━━━ Failed (" "- lhs" ") (" "+ rhs" ") ━━━" vdiff) ""
+      failWith
+        (Just $ MkDiff "━━━ Failed (" "- lhs" ") (" "+ rhs" ") ━━━" vdiff)
+        ""
 
 ||| Causes a test to fail.
 export %inline
@@ -447,10 +452,11 @@ assert ok = if ok then success else failure
 ||| /diff is shown.
 |||
 export %inline
-diff :  Show a
-     => Show b
-     => Monad m
-     => a -> (a -> b -> Bool) -> b -> TestT m ()
+diff :
+     {auto _ : Show a}
+  -> {auto _ : Show b}
+  -> {auto _ : Monad m}
+  -> a -> (a -> b -> Bool) -> b -> TestT m ()
 diff x op y = if x `op` y then success else failDiff x y
 
 infix 6 ===
@@ -499,9 +505,10 @@ PropertyT = TestT Gen
 ||| 'Show' instance.
 export
 forAllWith : (a -> String) -> Gen a -> PropertyT a
-forAllWith render gen = do x <- lift (lift gen)
-                           annotate (render x)
-                           pure x
+forAllWith render gen = do
+  x <- lift (lift gen)
+  annotate (render x)
+  pure x
 
 ||| Generates a random input for the test by running the provided generator.
 export %inline
@@ -535,7 +542,7 @@ namespace Property
   verifiedTermination =
     mapConfig $ \config =>
       let
-        newTerminationCriteria = case config.terminationCriteria of
+        newTerminationCriteria := case config.terminationCriteria of
           NoEarlyTermination c tests    => EarlyTermination c tests
           NoConfidenceTermination tests => EarlyTermination defaultConfidence tests
           EarlyTermination c tests      => EarlyTermination c tests
@@ -546,10 +553,12 @@ namespace Property
   export
   mapTests : (TestLimit -> TestLimit) -> Property -> Property
   mapTests f = mapConfig {terminationCriteria $= setLimit}
-    where setLimit : TerminationCriteria -> TerminationCriteria
-          setLimit (NoEarlyTermination c n)    = NoEarlyTermination c (f n)
-          setLimit (NoConfidenceTermination n) = NoConfidenceTermination (f n)
-          setLimit (EarlyTermination c n)      = EarlyTermination c (f n)
+
+    where
+      setLimit : TerminationCriteria -> TerminationCriteria
+      setLimit (NoEarlyTermination c n)    = NoEarlyTermination c (f n)
+      setLimit (NoConfidenceTermination n) = NoConfidenceTermination (f n)
+      setLimit (EarlyTermination c n)      = EarlyTermination c (f n)
 
   ||| Set the number of times a property should be executed before it is considered
   ||| successful.
@@ -572,10 +581,12 @@ namespace Property
   export
   withConfidence : Confidence -> Property -> Property
   withConfidence c = mapConfig { terminationCriteria $= setConfidence }
-    where setConfidence : TerminationCriteria -> TerminationCriteria
-          setConfidence (NoEarlyTermination _ n)    = NoEarlyTermination c n
-          setConfidence (NoConfidenceTermination n) = NoConfidenceTermination n
-          setConfidence (EarlyTermination _ n)      = EarlyTermination c n
+
+    where
+      setConfidence : TerminationCriteria -> TerminationCriteria
+      setConfidence (NoEarlyTermination _ n)    = NoEarlyTermination c n
+      setConfidence (NoConfidenceTermination n) = NoConfidenceTermination n
+      setConfidence (EarlyTermination _ n)      = EarlyTermination c n
 
 ||| Creates a property with the default configuration.
 export
@@ -637,8 +648,8 @@ namespace Group
 export
 coverPercentage : TestCount -> CoverCount -> CoverPercentage
 coverPercentage (MkTagged tests) (MkTagged count) =
-  let percentage  = the Double (cast count / cast tests * 100)
-      thousandths = round {a = Double} $ percentage * 10
+  let percentage  := the Double (cast count / cast tests * 100)
+      thousandths := round {a = Double} $ percentage * 10
   in MkTagged (thousandths / 10)
 
 export
@@ -673,7 +684,7 @@ coverageSuccess tests c = null $ coverageFailures tests c
 export
 cover : Monad m => CoverPercentage -> LabelName -> Bool -> TestT m ()
 cover min name covered =
-  let cover = if covered then Covered else NotCovered
+  let cover := if covered then Covered else NotCovered
    in writeLog $ LogLabel (MkLabel name min cover)
 
 ||| Records the proportion of tests which satisfy a given condition.
@@ -712,14 +723,17 @@ unionsCoverage = MkCoverage . concatMap coverageLabels
 
 export
 journalCoverage : Journal -> Coverage CoverCount
-journalCoverage = map toCoverCount
-                . unionsCoverage
-                . (>>= fromLog)
-                . journalLogs
-  where fromLog : Lazy Log -> List (Coverage Cover)
-        fromLog (LogLabel x)   = [fromLabel x]
-        fromLog (Footnote _)   = []
-        fromLog (Annotation _) = []
+journalCoverage =
+    map toCoverCount
+  . unionsCoverage
+  . (>>= fromLog)
+  . journalLogs
+
+  where
+    fromLog : Lazy Log -> List (Coverage Cover)
+    fromLog (LogLabel x)   = [fromLabel x]
+    fromLog (Footnote _)   = []
+    fromLog (Annotation _) = []
 
 --------------------------------------------------------------------------------
 --          Confidence
@@ -739,23 +753,24 @@ half = times (Element 0.5 Refl)
 
 -- In order to get an accurate measurement with small sample sizes, we're
 -- using the Wilson score interval
--- (<https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Wilson_score_interval wikipedia>) instead of a normal approximation interval.
+-- (<https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Wilson_score_interval wikipedia>)
+-- instead of a normal approximation interval.
 wilsonBounds : Nat -> Nat -> InUnit -> (Double, Double)
 wilsonBounds positives count acceptance =
   let
-    p = the Double (cast positives / cast count)
-    n = the Double (cast count)
-    z = invnormcdf $ oneMin (half acceptance)
+    p := the Double (cast positives / cast count)
+    n := the Double (cast count)
+    z := invnormcdf $ oneMin (half acceptance)
 
-    midpoint = p + z * z / (2 * n)
+    midpoint := p + z * z / (2 * n)
 
-    offset = z / (1 + z * z / n) * sqrt (p * (1 - p) / n + z * z / (4 * n * n))
+    offset := z / (1 + z * z / n) * sqrt (p * (1 - p) / n + z * z / (4 * n * n))
 
-    denominator = 1 + z * z / n
+    denominator := 1 + z * z / n
 
-    low = (midpoint - offset) / denominator
+    low := (midpoint - offset) / denominator
 
-    high = (midpoint + offset) / denominator
+    high := (midpoint + offset) / denominator
   in (low, high)
 
 boundsForLabel : TestCount -> Confidence -> Label CoverCount -> (Double, Double)
@@ -768,10 +783,12 @@ export
 confidenceSuccess : TestCount -> Confidence -> Coverage CoverCount -> Bool
 confidenceSuccess tests confidence =
   all assertLow . labels
-  where assertLow : Label CoverCount -> Bool
-        assertLow cc =
-          fst (boundsForLabel tests confidence cc) >=
-          unTag cc.labelMinimum / 100.0
+
+  where
+    assertLow : Label CoverCount -> Bool
+    assertLow cc =
+      fst (boundsForLabel tests confidence cc) >=
+      unTag cc.labelMinimum / 100.0
 
 ||| Is true when there exists a label that is sure to have failed according to
 ||| the 'Confidence' constraint
@@ -779,10 +796,12 @@ export
 confidenceFailure : TestCount -> Confidence -> Coverage CoverCount -> Bool
 confidenceFailure tests confidence =
   any assertHigh . labels
-  where assertHigh : Label CoverCount -> Bool
-        assertHigh cc =
-          snd (boundsForLabel tests confidence cc) <
-          (unTag cc.labelMinimum / 100.0)
+
+  where
+    assertHigh : Label CoverCount -> Bool
+    assertHigh cc =
+      snd (boundsForLabel tests confidence cc) <
+      (unTag cc.labelMinimum / 100.0)
 
 export
 multOf100 : TestCount -> Bool
@@ -801,14 +820,15 @@ successVerified count cover conf =
   maybe False (\c => confidenceSuccess count c cover) conf
 
 export
-abortEarly :  TerminationCriteria
-           -> TestCount
-           -> Coverage CoverCount
-           -> Maybe Confidence
-           -> Bool
+abortEarly :
+     TerminationCriteria
+  -> TestCount
+  -> Coverage CoverCount
+  -> Maybe Confidence
+  -> Bool
 abortEarly (EarlyTermination _ _) tests cover conf =
-  let coverageReached     = successVerified tests cover conf
-      coverageUnreachable = failureVerified tests cover conf
+  let coverageReached     := successVerified tests cover conf
+      coverageUnreachable := failureVerified tests cover conf
    in unTag tests >= unTag defaultMinTests &&
       (coverageReached || coverageUnreachable)
 

@@ -48,8 +48,9 @@ and verify by calling `check`:
 
 ```idris
 propReverse : Property
-propReverse = property $ do xs <- forAll charGen
-                            xs === reverse (reverse xs)
+propReverse = property $ do
+  xs <- forAll charGen
+  xs === reverse (reverse xs)
 
 checkReverse : IO Bool
 checkReverse = check propReverse
@@ -77,8 +78,9 @@ unicodeGen : Gen String
 unicodeGen = string (linear 0 30) unicode
 
 propertyFastPack : Property
-propertyFastPack = property $ do s <- forAll unicodeGen
-                                 s === fastPack (fastUnpack s)
+propertyFastPack = property $ do
+  s <- forAll unicodeGen
+  s === fastPack (fastUnpack s)
 ```
 
 We could also check that `fastUnpack` and `unpack` yield the
@@ -86,8 +88,9 @@ same result:
 
 ```idris
 propertyFastUnpack : Property
-propertyFastUnpack = property $ do s <- forAll unicodeGen
-                                   unpack s === fastUnpack s
+propertyFastUnpack = property $ do
+  s <- forAll unicodeGen
+  unpack s === fastUnpack s
 ```
 
 To generate some nice output, we define a property group
@@ -95,11 +98,13 @@ and run these tests together:
 
 ```idris
 checkPack : IO Bool
-checkPack = checkGroup $
-              MkGroup "Fast String Functions"
-                      [ ("fastPack . fastUnpack = id", propertyFastPack)
-                      , ("unpack = fastUnpack", propertyFastUnpack)
-                      ]
+checkPack =
+  checkGroup $
+    MkGroup
+      "Fast String Functions"
+      [ ("fastPack . fastUnpack = id", propertyFastPack)
+      , ("unpack = fastUnpack", propertyFastUnpack)
+      ]
 ```
 
 Running this in the REPL results in the following output:
@@ -118,9 +123,10 @@ Next, we will write a property that does not hold:
 ```idris
 propAddInts : Property
 propAddInts =
-  let int20 = int $ linear 0 20
-   in property $ do [a,b,c,d] <- forAll $ np [int20,int20,int20,int20]
-                    (a + b) === (c + d)
+  let int20 := int $ linear 0 20
+   in property $ do
+        [a,b,c,d] <- forAll $ np [int20,int20,int20,int20]
+        (a + b) === (c + d)
 ```
 
 Before we look at what happens when we check this property,
@@ -239,14 +245,15 @@ putting generated integers into one of five classes.
 
 ```idris
 propTwice : Property
-propTwice = withTests 10000 . property $
-               do n <- forAll int1000
-                  classify "zero" (n == 0)
-                  classify "one" (n == 1)
-                  classify "below 10" (n > 1 && n < 10)
-                  classify "below 100" (n >= 10 && n < 100)
-                  classify "above 100" (n >= 100)
-                  (2 * n) === (n + n)
+propTwice =
+  withTests 10000 . property $ do
+    n <- forAll int1000
+    classify "zero" (n == 0)
+    classify "one" (n == 1)
+    classify "below 10" (n > 1 && n < 10)
+    classify "below 100" (n >= 10 && n < 100)
+    classify "above 100" (n >= 100)
+    (2 * n) === (n + n)
 
 checkTwice : IO Bool
 checkTwice = checkNamed "propTwice" propTwice
@@ -271,11 +278,12 @@ or if not at least eighty percent are in the interval [100,1000]:
 
 ```idris
 propTwice2 : Property
-propTwice2 = withTests 10000 . property $
-                do n <- forAll int1000
-                   cover 5 "[10,100)" (n >= 10 && n < 100)
-                   cover 80 "[100,1000]" (n >= 100)
-                   (2 * n) === (n + n)
+propTwice2 =
+  withTests 10000 . property $ do
+    n <- forAll int1000
+    cover 5 "[10,100)" (n >= 10 && n < 100)
+    cover 80 "[100,1000]" (n >= 100)
+    (2 * n) === (n + n)
 
 checkTwice2 : IO Bool
 checkTwice2 = checkNamed "propTwice2" propTwice2

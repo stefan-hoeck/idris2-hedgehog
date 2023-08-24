@@ -15,9 +15,11 @@ CogenVis : Visibility -> List Name -> ParamTypeInfo -> Res (List TopLevel)
 CogenVis vis nms p = do
   let fun  := funName p "perturb"
   let impl := implName p "Cogen"
-  Right [ TL (perturbClaim fun p) (perturbDef fun p.info)
-        , TL (cogenImplClaim impl p) (cogenImplDef fun impl)
-        ]
+  Right
+    [ TL (perturbClaim fun p) (perturbDef fun p.info)
+    , TL (cogenImplClaim impl p) (cogenImplDef fun impl)
+    ]
+
   where
     perturbClaim : Name -> ParamTypeInfo -> Decl
     perturbClaim fun p =

@@ -26,23 +26,23 @@ TestRes = (Either Failure (), Journal)
 shrink : Monad m => Nat -> Coforest a -> b -> (Nat -> a -> m (Maybe b)) -> m b
 shrink _     []        b _ = pure b
 shrink 0 _             b _ = pure b
-shrink (S k) (t :: ts) b f = do Just b2 <- f (S k) t.value
-                                  | Nothing => shrink k ts b f
-                                shrink k t.forest b2 f
+shrink (S k) (t :: ts) b f = do
+  Just b2 <- f (S k) t.value | Nothing => shrink k ts b f
+  shrink k t.forest b2 f
 
 takeSmallest :
-     Monad m
-  => Size
+     {auto _ : Monad m}
+  -> Size
   -> Seed
   -> ShrinkLimit
   -> (Progress -> m ())
   -> Cotree TestRes
   -> m Result
-takeSmallest si se (MkTagged slimit) updateUI t =
-  do res <- run 0 t.value
-     if isFailure res
-        then shrink slimit t.forest res runMaybe
-        else pure res
+takeSmallest si se (MkTagged slimit) updateUI t = do
+  res <- run 0 t.value
+  if isFailure res
+     then shrink slimit t.forest res runMaybe
+     else pure res
 
   where
     -- calc number of shrinks from the remaining
@@ -60,9 +60,9 @@ takeSmallest si se (MkTagged slimit) updateUI t =
         (Right x, _) => pure OK
 
     runMaybe : Nat -> TestRes -> m (Maybe Result)
-    runMaybe shrinksLeft testRes =
-      do res <- run (calcShrinks shrinksLeft) testRes
-         if isFailure res then pure (Just res) else pure Nothing
+    runMaybe shrinksLeft testRes = do
+      res <- run (calcShrinks shrinksLeft) testRes
+      if isFailure res then pure (Just res) else pure Nothing
 
 --------------------------------------------------------------------------------
 --          Test Runners
@@ -70,25 +70,26 @@ takeSmallest si se (MkTagged slimit) updateUI t =
 
 -- main test runner
 checkReport :
-     Monad m
-  => PropertyConfig
+     {auto _ : Monad m}
+  -> PropertyConfig
   -> Size
   -> Seed
   -> PropertyT ()
   -> (Report Progress -> m ())
   -> m (Report Result)
 checkReport cfg si0 se0 test updateUI =
-  let (conf, MkTagged numTests) = unCriteria cfg.terminationCriteria
+  let (conf, MkTagged numTests) := unCriteria cfg.terminationCriteria
    in loop numTests 0 si0 se0 neutral conf
 
   where
-    loop :  Nat
-         -> TestCount
-         -> Size
-         -> Seed
-         -> Coverage CoverCount
-         -> Maybe Confidence
-         -> m (Report Result)
+    loop :
+         Nat
+      -> TestCount
+      -> Size
+      -> Seed
+      -> Coverage CoverCount
+      -> Maybe Confidence
+      -> m (Report Result)
     loop n tests si se cover conf = do
       updateUI (MkReport tests cover Running)
       case n of
@@ -103,63 +104,66 @@ checkReport cfg si0 se0 test updateUI =
                pure $ report True tests si se cover conf
              else
               -- run another test
-              let (s0,s1) = split se
-                  tr      = runGen si s0 $ runTestT test
+              let (s0,s1) := split se
+                  tr      := runGen si s0 $ runTestT test
                   nextSize = if si < maxSize then (si + 1) else 0
                in case tr.value of
                     -- the test failed, so we abort and shrink
                     (Left x, _)  =>
-                      let upd = updateUI . MkReport (tests+1) cover
+                      let upd := updateUI . MkReport (tests+1) cover
                        in map (MkReport (tests+1) cover) $
                             takeSmallest si se cfg.shrinkLimit upd tr
 
                     -- the test succeeded, so we accumulate results
                     -- and loop once more
                     (Right x, journal) =>
-                      let cover1 = journalCoverage journal <+> cover
+                      let cover1 := journalCoverage journal <+> cover
                        in loop k (tests + 1) nextSize s1 cover1 conf
 
-checkTerm :  HasTerminal m
-          => Monad m
-          => Terminal m
-          -> UseColor
-          -> Maybe PropertyName
-          -> Size
-          -> Seed
-          -> Property
-          -> m (Report Result)
-checkTerm term color name si se prop =
-  do result <- checkReport {m} prop.config si se prop.test $ \prog =>
-               if multOf100 prog.tests
-                  then let ppprog = renderProgress color name prog
-                        in case prog.status of
-                               Running     => putTmp term ppprog
-                               Shrinking _ => putTmp term ppprog
-                  else pure ()
+checkTerm :
+     {auto _ : HasTerminal m}
+  -> {auto _ : Monad m}
+  -> Terminal m
+  -> UseColor
+  -> Maybe PropertyName
+  -> Size
+  -> Seed
+  -> Property
+  -> m (Report Result)
+checkTerm term color name si se prop = do
+  result <- checkReport {m} prop.config si se prop.test $
+    \prog =>
+       when (multOf100 prog.tests) $
+         let ppprog := renderProgress color name prog
+          in case prog.status of
+               Running     => putTmp term ppprog
+               Shrinking _ => putTmp term ppprog
 
-     putOut term (renderResult color name result)
-     pure result
+  putOut term (renderResult color name result)
+  pure result
 
-checkWith :  CanInitSeed m
-          => HasTerminal m
-          => Monad m
-          => Terminal m
-          -> UseColor
-          -> Maybe PropertyName
-          -> Property
-          -> m (Report Result)
+checkWith :
+     {auto _ : CanInitSeed m}
+  -> {auto _ : HasTerminal m}
+  -> {auto _ : Monad m}
+  -> Terminal m
+  -> UseColor
+  -> Maybe PropertyName
+  -> Property
+  -> m (Report Result)
 checkWith term color name prop =
   initSMGen >>= \se => checkTerm term color name 0 se prop
 
 ||| Check a property.
 export
-checkNamed :  HasConfig m
-           => CanInitSeed m
-           => HasTerminal m
-           => Monad m
-           => PropertyName
-           -> Property
-           -> m Bool
+checkNamed :
+     {auto _ : HasConfig m}
+  -> {auto _ : CanInitSeed m}
+  -> {auto _ : HasTerminal m}
+  -> {auto _ : Monad m}
+  -> PropertyName
+  -> Property
+  -> m Bool
 checkNamed name prop = do
   color <- detectColor
   term  <- console
@@ -168,12 +172,13 @@ checkNamed name prop = do
 
 ||| Check a property.
 export
-check :  HasConfig m
-      => CanInitSeed m
-      => HasTerminal m
-      => Monad m
-      => Property
-      -> m Bool
+check :
+     {auto _ : HasConfig m}
+  -> {auto _ : CanInitSeed m}
+  -> {auto _ : HasTerminal m}
+  -> {auto _ : Monad m}
+  -> Property
+  -> m Bool
 check prop = do
   color <- detectColor
   term  <- console
@@ -182,46 +187,52 @@ check prop = do
 
 ||| Check a property using a specific size and seed.
 export
-recheck :  HasConfig m
-        => HasTerminal m
-        => Monad m
-        => Size
-        -> Seed
-        -> Property
-        -> m ()
+recheck :
+     {auto _ : HasConfig m}
+  -> {auto _ : HasTerminal m}
+  -> {auto _ : Monad m}
+  -> Size
+  -> Seed
+  -> Property
+  -> m ()
 recheck si se prop = do
   color <- detectColor
   term  <- console
   _     <- checkTerm term color Nothing si se (withTests 1 prop)
   pure ()
 
-checkGroupWith :  CanInitSeed m
-               => HasTerminal m
-               => Monad m
-               => Terminal m
-               -> UseColor
-               -> List (PropertyName, Property)
-               -> m Summary
+checkGroupWith :
+     {auto _ : CanInitSeed m}
+  -> {auto _ : HasTerminal m}
+  -> {auto _ : Monad m}
+  -> Terminal m
+  -> UseColor
+  -> List (PropertyName, Property)
+  -> m Summary
 checkGroupWith term color = run neutral
-  where run : Summary -> List (PropertyName, Property) -> m Summary
-        run s [] = pure s
-        run s ((pn,p) :: ps) = do rep  <- checkWith term color (Just pn) p
-                                  run (s <+> fromResult rep.status) ps
+
+  where
+    run : Summary -> List (PropertyName, Property) -> m Summary
+    run s [] = pure s
+    run s ((pn,p) :: ps) = do
+      rep  <- checkWith term color (Just pn) p
+      run (s <+> fromResult rep.status) ps
 
 export
-checkGroup :  HasConfig m
-           => CanInitSeed m
-           => HasTerminal m
-           => Monad m
-           => Group
-           -> m Bool
-checkGroup (MkGroup group props) =
-  do term    <- console
-     putOut term $ "━━━ " ++ unTag group ++ " ━━━\n"
-     color   <- detectColor
-     summary <- checkGroupWith term color props
-     putOut term (renderSummary color summary)
-     pure $ summary.failed == 0
+checkGroup :
+     {auto _ : HasConfig m}
+  -> {auto _ : CanInitSeed m}
+  -> {auto _ : HasTerminal m}
+  -> {auto _ : Monad m}
+  -> Group
+  -> m Bool
+checkGroup (MkGroup group props) = do
+  term    <- console
+  putOut term $ "━━━ " ++ unTag group ++ " ━━━\n"
+  color   <- detectColor
+  summary <- checkGroupWith term color props
+  putOut term (renderSummary color summary)
+  pure $ summary.failed == 0
 
 ||| Simple test runner.
 |||
@@ -256,7 +267,7 @@ test gs = do
   if c.printHelp
      then putStrLn info >> exitSuccess
      else
-       let gs2 = map (applyConfig c) gs
+       let gs2 := map (applyConfig c) gs
         in do
              res <- foldlM (\b,g => map (b &&) (checkGroup g)) True gs2
              if res
