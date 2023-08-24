@@ -44,8 +44,9 @@ replicate width (S k) x = MkTree x $ replicate width (replicate width k x)
 public export
 unfold : (depth : Nat) -> (f : s -> (a,List s)) -> s -> Tree a
 unfold 0     f s = MkTree (fst $ f s) []
-unfold (S k) f s = let (a,ss) = f s
-                    in MkTree a (map (unfold k f) ss)
+unfold (S k) f s =
+  let (a,ss) := f s
+   in MkTree a (map (unfold k f) ss)
 
 --------------------------------------------------------------------------------
 --          Flattening Trees
@@ -59,16 +60,20 @@ zipWithKeep f (x :: xs) (y :: ys) = f x y :: zipWithKeep f xs ys
 public export
 flatten : Tree a -> List a
 flatten (MkTree v vs) = v :: flattenF vs
-  where flattenF : Forest a -> List a
-        flattenF []        = Nil
-        flattenF (x :: xs) = flatten x ++ flattenF xs
+
+  where
+    flattenF : Forest a -> List a
+    flattenF []        = Nil
+    flattenF (x :: xs) = flatten x ++ flattenF xs
 
 public export
 layers : Tree a -> List (List a)
 layers (MkTree v vs) = [v] :: layersF vs
-  where layersF : Forest a -> List (List a)
-        layersF []        = Nil
-        layersF (x :: xs) = zipWithKeep (++) (layers x) (layersF xs)
+
+  where
+    layersF : Forest a -> List (List a)
+    layersF []        = Nil
+    layersF (x :: xs) = zipWithKeep (++) (layers x) (layersF xs)
 
 --------------------------------------------------------------------------------
 --          Accessing Elements
@@ -78,10 +83,12 @@ public export
 index : List Nat -> Tree a -> Maybe a
 index []        x = Just x.value
 index (y :: ys) x = ix y x.forest >>= index ys
-  where ix : Nat -> List b -> Maybe b
-        ix _ []            = Nothing
-        ix 0     (z :: _)  = Just z
-        ix (S k) (_ :: zs) = ix k zs
+
+  where
+    ix : Nat -> List b -> Maybe b
+    ix _ []            = Nothing
+    ix 0     (z :: _)  = Just z
+    ix (S k) (_ :: zs) = ix k zs
 
 --------------------------------------------------------------------------------
 --          Functor and Monad Implementations
@@ -90,36 +97,45 @@ index (y :: ys) x = ix y x.forest >>= index ys
 -- All implementations are boilerplaty to satisfy the totality checker.
 foldlTree : (a -> e -> a) -> a -> Tree e -> a
 foldlTree f acc (MkTree v vs) = foldlF (f acc v) vs
-  where foldlF : a -> Forest e -> a
-        foldlF y []        = y
-        foldlF y (x :: xs) = foldlF (foldlTree f y x) xs
+
+  where
+    foldlF : a -> Forest e -> a
+    foldlF y []        = y
+    foldlF y (x :: xs) = foldlF (foldlTree f y x) xs
 
 foldrTree : (e -> a -> a) -> a -> Tree e -> a
 foldrTree f acc (MkTree v vs) = f v (foldrF acc vs)
-  where foldrF : a -> Forest e -> a
-        foldrF y []        = y
-        foldrF y (x :: xs) = foldrTree f (foldrF y xs) x
+
+  where
+    foldrF : a -> Forest e -> a
+    foldrF y []        = y
+    foldrF y (x :: xs) = foldrTree f (foldrF y xs) x
 
 traverseTree : Applicative f => (a -> f b) -> Tree a -> f (Tree b)
 traverseTree fun (MkTree v vs) = [| MkTree (fun v) (traverseF vs) |]
-  where traverseF : Forest a -> f (Forest b)
-        traverseF []        = pure []
-        traverseF (x :: xs) = [| traverseTree fun x :: traverseF xs |]
+
+  where
+    traverseF : Forest a -> f (Forest b)
+    traverseF []        = pure []
+    traverseF (x :: xs) = [| traverseTree fun x :: traverseF xs |]
 
 mapTree : (a -> b) -> Tree a -> Tree b
 mapTree f (MkTree v vs) = MkTree (f v) (mapF vs)
-  where mapF : Forest a -> Forest b
-        mapF []       = []
-        mapF (h :: t) = mapTree f h :: mapF t
+
+  where
+    mapF : Forest a -> Forest b
+    mapF []       = []
+    mapF (h :: t) = mapTree f h :: mapF t
 
 bindTree : Tree a -> (a -> Tree b) -> Tree b
 bindTree (MkTree va tas) f =
-  let MkTree vb tbs = f va
+  let MkTree vb tbs := f va
    in MkTree vb (tbs ++ bindF tas)
 
-  where bindF : Forest a -> Forest b
-        bindF []        = []
-        bindF (x :: xs) = bindTree x f :: bindF xs
+  where
+    bindF : Forest a -> Forest b
+    bindF []        = []
+    bindF (x :: xs) = bindTree x f :: bindF xs
 
 apTree : Tree (a -> b) -> Tree a -> Tree b
 apTree tf ta = bindTree tf $ \f => mapTree (apply f) ta
@@ -128,9 +144,10 @@ joinTree : Tree (Tree a) -> Tree a
 joinTree (MkTree (MkTree va tas) ftas) =
   MkTree va $ tas ++ joinF ftas
 
-  where joinF : Forest (Tree a) -> Forest a
-        joinF []        = []
-        joinF (x :: xs) = joinTree x :: joinF xs
+  where
+    joinF : Forest (Tree a) -> Forest a
+    joinF []        = []
+    joinF (x :: xs) = joinTree x :: joinF xs
 
 --------------------------------------------------------------------------------
 --          Visualizing Trees
@@ -139,12 +156,14 @@ joinTree (MkTree (MkTree va tas) ftas) =
 export
 drawTree : Tree String -> String
 drawTree  = unlines . draw
+
   where
     drawForest : Forest String -> String
     drawForest  = unlines . map drawTree
 
     draw : Tree String -> List String
     draw (MkTree x ts0) = lines x ++ subTrees ts0
+
       where
         shift : String -> String -> List String -> List String
         shift first other tails =

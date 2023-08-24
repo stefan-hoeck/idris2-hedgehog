@@ -115,21 +115,26 @@ organic s    = aromaticOrganic s
 
 
 ring : String -> Token
-ring s = case fastUnpack s of
-              [a]       => Ring $ calc a
-              ['%',a,b] => Ring $ calc a * 10 + calc b
-              _         => Invalid $ "Ring: " ++ s
-  where calc : Char -> Int
-        calc c = ord c - 48
+ring s =
+  case fastUnpack s of
+    [a]       => Ring $ calc a
+    ['%',a,b] => Ring $ calc a * 10 + calc b
+    _         => Invalid $ "Ring: " ++ s
+
+  where
+    calc : Char -> Int
+    calc c = ord c - 48
 
 smiles1 : Tokenizer Char Token
-smiles1 = Direct $ first
-  [ (pred isLower <|> (pred isUpper <+> opt (pred isLower)), organic . cast)
-  , (oneOf (unpack "-=#"), bond . cast)
-  , (digit <|> (is '%' <+> digit <+> digit), ring . cast)
-  , (is '(', const POpen)
-  , (is ')', const PClose)
-  ]
+smiles1 =
+  Direct $
+  first
+    [ (pred isLower <|> (pred isUpper <+> opt (pred isLower)), organic . cast)
+    , (oneOf (unpack "-=#"), bond . cast)
+    , (digit <|> (is '%' <+> digit <+> digit), ring . cast)
+    , (is '(', const POpen)
+    , (is ')', const PClose)
+    ]
 
 export
 lexSmiles1 : (s : String) -> List (Bounded Token)
@@ -149,17 +154,20 @@ genBond = element [Sngl,Dbl,Trpl]
 
 -- element paired with aromaticity
 genAtom : Gen (Elem,Bool)
-genAtom = element $  map (,False) [B,C,N,O,F,S,Cl,P,Br,I]
-                  ++ map (,True)  [B,C,N,O,S,P]
+genAtom =
+  element $
+    map (,False) [B,C,N,O,F,S,Cl,P,Br,I] ++ map (,True)  [B,C,N,O,S,P]
 
 -- this does not generate Invalid tokens
 token : Gen Token
-token = frequency [ (10, uncurry Organic <$> genAtom)
-                  , (2,  SBond <$> genBond)
-                  , (1,  Ring <$> int (linear 1 99))
-                  , (1,  pure POpen)
-                  , (1,  pure PClose)
-                  ]
+token =
+  frequency
+    [ (10, uncurry Organic <$> genAtom)
+    , (2,  SBond <$> genBond)
+    , (1,  Ring <$> int (linear 1 99))
+    , (1,  pure POpen)
+    , (1,  pure PClose)
+    ]
 
 tokens : Gen (List Token)
 tokens = list (linear 1 50) token
@@ -176,16 +184,17 @@ list of valid tokens.
 
 ```idris
 prop_lex1 : Property
-prop_lex1 = property $ do ts <- forAll tokens
+prop_lex1 = property $ do
+  ts <- forAll tokens
 
-                          let enc : String
-                              enc = concatMap encode ts
+  let enc : String
+      enc = concatMap encode ts
 
-                              lexed : List Token
-                              lexed = map val $ lexSmiles1 enc
+      lexed : List Token
+      lexed = map val $ lexSmiles1 enc
 
-                          footnote $ "Encoded: " ++ enc
-                          lexed === ts
+  footnote $ "Encoded: " ++ enc
+  lexed === ts
 ```
 
 We annotate the property with a footnote of the encoded
@@ -225,28 +234,31 @@ checking `prop_lex`:
 
 ```idris
 smiles : Tokenizer Char Token
-smiles = Direct $ first
-  [ (exact "Cl" <|> exact "Br" <|> pred isAlpha, organic . cast)
-  , (oneOf (unpack "-=#"), bond . cast)
-  , (digit <|> (is '%' <+> digit <+> digit), ring . cast)
-  , (is '(', const POpen)
-  , (is ')', const PClose)
-  ]
+smiles =
+  Direct $
+    first
+      [ (exact "Cl" <|> exact "Br" <|> pred isAlpha, organic . cast)
+      , (oneOf (unpack "-=#"), bond . cast)
+      , (digit <|> (is '%' <+> digit <+> digit), ring . cast)
+      , (is '(', const POpen)
+      , (is ')', const PClose)
+      ]
 
 lexSmiles : (s : String) -> List (Bounded Token)
 lexSmiles s = (<>> []) . toks $ lex smiles s
 
 prop_lex : Property
-prop_lex = property $ do ts <- forAll tokens
+prop_lex = property $ do
+  ts <- forAll tokens
 
-                         let enc : String
-                             enc = concatMap encode ts
+  let enc : String
+      enc = concatMap encode ts
 
-                             lexed : List Token
-                             lexed = map val $ lexSmiles enc
+      lexed : List Token
+      lexed = map val $ lexSmiles enc
 
-                         footnote $ "Encoded: " ++ enc
-                         lexed === ts
+  footnote $ "Encoded: " ++ enc
+  lexed === ts
 ```
 
 <!-- vi: filetype=idris2:syntax=markdown

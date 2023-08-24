@@ -96,10 +96,7 @@ Cogen Nat where
 
 export
 Cogen Integer where
-  perturb = variant . niceVariant where
-    niceVariant : Integer -> Bits64
-    niceVariant n =
-      if n >= 0 then cast (2 * n) else cast (2 * negate n + 1)
+  perturb = variant . cast
 
 export
 Cogen Bits64 where
@@ -112,16 +109,16 @@ export
 Cogen Bits8 where perturb = variant . cast
 
 export
-Cogen Int64 where perturb = perturb . cast {to=Integer}
+Cogen Int64 where perturb = variant . cast
 
 export
-Cogen Int16 where perturb = perturb . cast {to=Integer}
+Cogen Int16 where perturb = variant . cast
 
 export
-Cogen Int8 where perturb = perturb . cast {to=Integer}
+Cogen Int8 where perturb = variant . cast
 
 export
-Cogen Int where perturb = perturb . cast {to=Integer}
+Cogen Int where perturb = variant . cast
 
 export
 Cogen Char where perturb = variant . cast
@@ -179,8 +176,8 @@ function_ bg =
 ||| your own implementation).
 export
 depfun_ :
-     Cogen a
-  => {0 b : a -> Type}
+     {auto _ : Cogen a}
+  -> {0 b : a -> Type}
   -> ((x : a) -> Gen $ b x)
   -> Gen ((x : a) -> b x)
 depfun_ bg =
@@ -197,9 +194,9 @@ depfun_ bg =
 ||| your own implementation).
 export
 dargfun_ :
-     {0 b : a -> Type}
-  -> ({0 x : a} -> Cogen (b x))
-  => Gen c
+     {0 b    : a -> Type}
+  -> {auto _ : {0 x : a} -> Cogen (b x)}
+  -> Gen c
   -> Gen ({0 x : a} -> b x -> c)
 dargfun_ bg =
   MkGen $ \sz, sd => singleton $ \x => value $ unGen bg sz $ perturb x sd
@@ -217,9 +214,9 @@ export
 dargdepfun_ :
      {0 b : a -> Type}
   -> {0 c : {0 x : a} -> b x -> Type}
-  -> ({0 x : a} -> Cogen (b x))
-  => ({0 x : a} -> (y : b x) -> Gen (c y))
-   -> Gen ({0 x : a} -> (y : b x) -> c y)
+  -> {auto _ : {0 x : a} -> Cogen (b x)}
+  -> ({0 x : a} -> (y : b x) -> Gen (c y))
+  -> Gen ({0 x : a} -> (y : b x) -> c y)
 dargdepfun_ bg =
   MkGen $ \sz, sd => singleton $ \x => value $ unGen (bg x) sz $ perturb x sd
 
@@ -304,23 +301,27 @@ ShrCogen a => ShrCogen (Maybe a) where
 
 export
 ShrCogen Bool where
-  build = via toEither fromEither where
-    toEither : Bool -> Either Unit Unit
-    toEither True  = Left ()
-    toEither False = Right ()
-    fromEither : Either Unit Unit -> Bool
-    fromEither $ Left ()  = True
-    fromEither $ Right () = False
+  build = via toEither fromEither
+
+    where
+      toEither : Bool -> Either Unit Unit
+      toEither True  = Left ()
+      toEither False = Right ()
+      fromEither : Either Unit Unit -> Bool
+      fromEither $ Left ()  = True
+      fromEither $ Right () = False
 
 export
 ShrCogen a => ShrCogen (List a) where
-  build = assert_total via toEither fromEither where
-    toEither : List a -> Either Unit (a, List a)
-    toEither []      = Left ()
-    toEither (x::xs) = Right (x, xs)
-    fromEither : Either Unit (a, List a) -> List a
-    fromEither (Left ())       = []
-    fromEither (Right (x, xs)) = x::xs
+  build = assert_total via toEither fromEither
+
+    where
+      toEither : List a -> Either Unit (a, List a)
+      toEither []      = Left ()
+      toEither (x::xs) = Right (x, xs)
+      fromEither : Either Unit (a, List a) -> List a
+      fromEither (Left ())       = []
+      fromEither (Right (x, xs)) = x::xs
 
 export
 ShrCogen (Equal x x) where
@@ -328,20 +329,23 @@ ShrCogen (Equal x x) where
 
 export
 ShrCogen Integer where
-  build = via toBits fromBits where
+  build = via toBits fromBits
 
-    toBits : Integer -> (Bool, List Bool)
-    toBits n = if n >= 0 then (True, go [] n) else (False, go [] $ -n - 1) where
-      go : List Bool -> Integer -> List Bool
-      go bits x =
-        if x == 0
-          then bits
-          else go ((mod x 2 == 1) :: bits) (assert_smaller x $ div x 2)
+    where
+      toBits : Integer -> (Bool, List Bool)
+      toBits n = if n >= 0 then (True, go [] n) else (False, go [] $ -n - 1)
 
-    fromBits : (Bool, List Bool) -> Integer
-    fromBits (sign, bits) = do
-      let body = foldl (\acc, b => acc * 2 + if b then 1 else 0) 0 bits
-      if sign then body else negate $ body + 1
+        where
+          go : List Bool -> Integer -> List Bool
+          go bits x =
+            if x == 0
+              then bits
+              else go ((mod x 2 == 1) :: bits) (assert_smaller x $ div x 2)
+
+      fromBits : (Bool, List Bool) -> Integer
+      fromBits (sign, bits) = do
+        let body = foldl (\acc, b => acc * 2 + if b then 1 else 0) 0 bits
+        if sign then body else negate $ body + 1
 
 export
 ShrCogen Nat where build = via {b=Integer} cast cast
@@ -393,6 +397,7 @@ shrinkFn shr (FSum a b) =
     (if notFNil a then [ FSum FNil b ] else []) ++
     map (`FSum` b) (shrinkFn shr a) ++
     map (a `FSum`) (shrinkFn shr b)
+
   where
     (++) : forall a. Colist a -> Inf (Colist a) -> Colist a
     []      ++ ys = ys
@@ -411,6 +416,7 @@ data Fn a b = MkFn b (a :-> Cotree b)
 export
 Show a => Show b => Show (Fn a b) where
   show (MkFn xb xa) = unlines $ (table xa <&> showCase) ++ ["_ -> " ++ show xb]
+
     where
       showCase : (a, Cotree b) -> String
       showCase (lhs, rhs) = show lhs ++ " -> " ++ show rhs.value
@@ -425,11 +431,12 @@ Show a => Show b => Show (Fn a b) where
 ||| argument.
 export
 function : ShrCogen a => Gen b -> Gen (Fn a b)
-function gb = [| MkFn gb (genFn $ \a => cogen a gb) |] where
+function gb = [| MkFn gb (genFn $ \a => cogen a gb) |]
 
-  genFn : (a -> Gen b) -> Gen (a :-> Cotree b)
-  genFn g = MkGen $ \sz, sd =>
-    iterate (shrinkFn forest) . map (runGen sz sd) $ build g
+  where
+    genFn : (a -> Gen b) -> Gen (a :-> Cotree b)
+    genFn g = MkGen $ \sz, sd =>
+      iterate (shrinkFn forest) . map (runGen sz sd) $ build g
 
 ||| Coverts a showable randomly generated function to an actual function
 export

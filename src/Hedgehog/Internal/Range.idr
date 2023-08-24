@@ -113,9 +113,9 @@ upperBound sz = uncurry max . bounds sz
 export
 Functor Range where
   map f (MkRange origin bounds') =
-    MkRange (f origin) $
-            \si => let (x,y) = bounds' si
-                    in (f x, f y)
+    MkRange
+      (f origin)
+      (\si => let (x,y) := bounds' si in (f x, f y))
 
 --------------------------------------------------------------------------------
 --          Constant Ranges
@@ -195,17 +195,19 @@ constantBounded = constantFrom 0 minBound maxBound
 ||| 5
 export
 clamp : Ord a => (lower,upper,val : a) -> a
-clamp l u v = if l > u then min l (max u v)
-                       else min u (max l v)
+clamp l u v =
+  if l > u
+     then min l (max u v)
+     else min u (max l v)
 
 ||| Scales an integral value linearly with the size parameter.
 export
 scaleLinear : ToInteger a => Size -> (origin,bound : a) -> a
 scaleLinear sz o0 b0 =
-  let o    = toInteger o0
-      b    = toInteger b0
-      rng  = b - o
-      diff = (rng * toInteger sz) `safeDiv` 100
+  let o    := toInteger o0
+      b    := toInteger b0
+      rng  := b - o
+      diff := (rng * toInteger sz) `safeDiv` 100
    in fromInteger $ o + diff
 
 ||| Scales a fractional value linearly with the size parameter.
@@ -216,13 +218,16 @@ scaleLinearFrac sz o b =
    in o + diff
 
 export %inline
-scaled :  Ord a
-       => (scale : Size -> (origin,bound : a) -> a)
-       -> (origin,lower,upper : a)
-       -> Range a
-scaled f o l u = MkRange o $ \sz => let x_sized = clamp l u $ f sz o l
-                                        y_sized = clamp l u $ f sz o u
-                                     in (x_sized, y_sized)
+scaled :
+     {auto _ : Ord a}
+  -> (scale : Size -> (origin,bound : a) -> a)
+  -> (origin,lower,upper : a)
+  -> Range a
+scaled f o l u =
+  MkRange o $ \sz =>
+    let x_sized := clamp l u $ f sz o l
+        y_sized := clamp l u $ f sz o u
+     in (x_sized, y_sized)
 
 ||| Construct a range which scales the bounds relative to the size parameter.
 |||
@@ -245,17 +250,20 @@ linear origin upper = linearFrom origin origin upper
 export
 linearFin : (n : Nat) -> Range (Fin $ S n)
 linearFin n = map toFin $ linearFrom 0 0 (natToInteger n)
-  where toFin : Integer -> Fin (S n)
-        toFin k = fromMaybe FZ (integerToFin k (S n))
+
+  where
+    toFin : Integer -> Fin (S n)
+    toFin k = fromMaybe FZ (integerToFin k (S n))
 
 ||| Construct a range which scales the bounds relative to the size parameter.
 |||
 ||| This works the same as 'linearFrom', but for fractional values.
 export
-linearFracFrom :  Ord a
-               => Fractional a
-               => Neg a
-               => (origin,lower,uppder : a) -> Range a
+linearFracFrom :
+     {auto _ : Ord a}
+  -> {auto _ : Fractional a}
+  -> {auto _ : Neg a}
+  -> (origin,lower,uppder : a) -> Range a
 linearFracFrom = scaled scaleLinearFrac
 
 ||| Construct a range which is scaled relative to the size parameter and uses
@@ -286,9 +294,9 @@ EulerMinus1 = euler - 1
 export
 scaleExponentialDouble : Size -> (origin,bound : Double) -> Double
 scaleExponentialDouble sz o b =
-  let e     = fromIntegral sz / 100.0
-      delta = b - o
-      diff  = pow (abs delta + 1) e - 1
+  let e     := fromIntegral sz / 100.0
+      delta := b - o
+      diff  := pow (abs delta + 1) e - 1
    in o + diff * signum delta
 
 ||| Scale an integral exponentially with the size parameter.
@@ -316,8 +324,10 @@ exponential l u = exponentialFrom l l u
 export
 exponentialFin : (n : Nat) -> Range (Fin $ S n)
 exponentialFin n = map toFin $ exponentialFrom 0 0 (natToInteger n)
-  where toFin : Integer -> Fin (S n)
-        toFin k = fromMaybe FZ (integerToFin k (S n))
+
+  where
+    toFin : Integer -> Fin (S n)
+    toFin k = fromMaybe FZ (integerToFin k (S n))
 
 --------------------------------------------------------------------------------
 --          Tests and Proofs

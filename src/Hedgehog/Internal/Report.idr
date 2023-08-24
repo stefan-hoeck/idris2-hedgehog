@@ -140,17 +140,18 @@ takeFootnote (Annotation _) = Nothing
 takeFootnote (LogLabel _)   = Nothing
 
 export
-mkFailure :  Size
-          -> Seed
-          -> ShrinkCount
-          -> Maybe (Coverage CoverCount)
-          -> String
-          -> Maybe Diff
-          -> List (Lazy Log)
-          -> FailureReport
+mkFailure :
+     Size
+  -> Seed
+  -> ShrinkCount
+  -> Maybe (Coverage CoverCount)
+  -> String
+  -> Maybe Diff
+  -> List (Lazy Log)
+  -> FailureReport
 mkFailure size seed shrinks mcoverage message diff logs =
-  let inputs    = mapMaybe takeAnnotation logs
-      footnotes = mapMaybe takeFootnote logs
+  let inputs    := mapMaybe takeAnnotation logs
+      footnotes := mapMaybe takeFootnote logs
    in MkFailureReport size seed shrinks mcoverage inputs message diff footnotes
 
 --------------------------------------------------------------------------------
@@ -249,12 +250,12 @@ labelWidth : TestCount -> Label CoverCount -> ColumnWidth
 labelWidth tests x =
   let percentage :=
         length . renderCoverPercentage $
-          coverPercentage tests x.labelAnnotation
+        coverPercentage tests x.labelAnnotation
 
       minimum :=
         if x.labelMinimum == 0
-          then the Nat 0
-          else length . renderCoverPercentage $ x.labelMinimum
+           then the Nat 0
+           else length . renderCoverPercentage $ x.labelMinimum
 
       name := length . unTag $ x.labelName
 
@@ -304,8 +305,8 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
   reproduce name size seed =
     let prop  := line $ maybe "<property>" unTag name
         instr := prettyCon Open "recheck" [prettyArg size, prettyArg seed, prop]
-     in vsep [
-            markupLine ReproduceHeader "This failure can be reproduced by running:"
+     in vsep
+          [ markupLine ReproduceHeader "This failure can be reproduced by running:"
           , gutter ReproduceGutter $ markup ReproduceSource instr
           ]
 
@@ -314,10 +315,10 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
 
   failedInput : Nat -> FailedAnnotation -> Doc opts
   failedInput ix (MkFailedAnnotation val) =
-    vsep [
-      line "forAll \{show ix} ="
-    , indent 2 . vsep . map (markup AnnotationValue . line) $ lines val
-    ]
+    vsep
+      [ line "forAll \{show ix} ="
+      , indent 2 . vsep . map (markup AnnotationValue . line) $ lines val
+      ]
 
   failureReport :
        Maybe PropertyName
@@ -325,37 +326,41 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
     -> FailureReport
     -> List (Doc opts)
   failureReport nm tests (MkFailureReport si se _ mcover inputs msg mdiff msgs0) =
-    whenSome (empty ::)           .
-    whenSome (++ [empty])         .
-    intersperse empty             .
-    map (vsep . map (indent 2))   .
-    filter (\xs => not $ null xs) $
-    [intersperse empty args, coverage, docs, bottom]
+      whenSome (empty ::)
+    . whenSome (++ [empty])
+    . intersperse empty
+    . map (vsep . map (indent 2))
+    . filter (\xs => not $ null xs)
+    $ [intersperse empty args, coverage, docs, bottom]
 
-    where whenSome : Foldable t => (t a -> t a) -> t a -> t a
-          whenSome f xs = if null xs then xs else f xs
+    where
+      whenSome : Foldable t => (t a -> t a) -> t a -> t a
+      whenSome f xs = if null xs then xs else f xs
 
-          bottom : List (Doc opts)
-          bottom = maybe [reproduce nm si se] (const Nil) mcover
+      bottom : List (Doc opts)
+      bottom = maybe [reproduce nm si se] (const Nil) mcover
 
-          docs : List (Doc opts)
-          docs = concatMap textLines (map force msgs0 ++ if msg == "" then [] else [msg])
-               <+> maybe [] diff mdiff
+      docs : List (Doc opts)
+      docs =
+        concatMap
+          textLines
+          (map force msgs0 ++ if msg == "" then [] else [msg])
+        <+> maybe [] diff mdiff
 
-          args : List (Doc opts)
-          args = zipWith failedInput [0 .. length inputs] (reverse $ map force inputs)
+      args : List (Doc opts)
+      args = zipWith failedInput [0 .. length inputs] (reverse $ map force inputs)
 
-          coverage : List (Doc opts)
-          coverage =
-            case mcover of
-              Nothing => []
-              Just c  => do
-                MkLabel _ _ count <- coverageFailures tests c
-                pure $
-                      line "Failed ("
-                  <+> markupLine CoverageText
-                        (renderCoverPercentage (coverPercentage tests count))
-                  <+> " coverage)"
+      coverage : List (Doc opts)
+      coverage =
+        case mcover of
+          Nothing => []
+          Just c  => do
+            MkLabel _ _ count <- coverageFailures tests c
+            pure $
+                  line "Failed ("
+              <+> markupLine CoverageText
+                    (renderCoverPercentage (coverPercentage tests count))
+              <+> " coverage)"
 
   ppName : Maybe PropertyName -> Doc opts
   ppName Nothing                = "<interactive>"
@@ -375,13 +380,16 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
         fillErrorWidth   := minimumWidth `minus` S coverageWidth
         fillSurplusWidth := fillWidth `minus` fillErrorWidth
 
-        ix               := toNat . floor $
-                            ((coverageRatio * cast barWidth) - cast coverageWidth)
-                            * cast (length parts)
+        ix :=
+          toNat . floor $
+          ((coverageRatio * cast barWidth) - cast coverageWidth) *
+          cast (length parts)
 
-        part             := symbol $ case inBounds ix parts of
-                              Yes ib => index ix parts
-                              No  _  => head parts
+        part :=
+          symbol $
+            case inBounds ix parts of
+              Yes ib => index ix parts
+              No  _  => head parts
 
      in hcat [ line $ replicate coverageWidth full
              , if coverageWidth < barWidth then
@@ -396,13 +404,13 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
 
   label : TestCount -> ColumnWidth -> Label CoverCount -> Doc opts
   label tests w x@(MkLabel name minimum count) =
-    let covered  = labelCovered tests x
-        ltext    = if not covered then markup CoverageText else id
-        lborder  = markup (StyledBorder StyleDefault)
-        licon    = if not covered then markup CoverageText "⚠ " else "  "
-        lname    = padRight (cast w.widthName) ' ' (unTag name)
-        wminimum = leftPad w.widthMinimum . line $ renderCoverPercentage minimum
-        lcover   = wcover
+    let covered  := labelCovered tests x
+        ltext    := if not covered then markup CoverageText else id
+        lborder  := markup (StyledBorder StyleDefault)
+        licon    := if not covered then markup CoverageText "⚠ " else "  "
+        lname    := padRight (cast w.widthName) ' ' (unTag name)
+        wminimum := leftPad w.widthMinimum . line $ renderCoverPercentage minimum
+        lcover   := wcover
 
         lminimum =
           if w.widthMinimum == 0 then empty
@@ -411,20 +419,22 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
           else " ✓ " <+> wminimum
 
 
-     in hcat [ licon
-             , ltext (line lname)
-             , lborder " "
-             , ltext lcover
-             , lborder " "
-             , ltext $ coverBar (coverPercentage tests count) minimum
-             , lborder ""
-             , ltext lminimum
-             ]
+     in hcat
+          [ licon
+          , ltext (line lname)
+          , lborder " "
+          , ltext lcover
+          , lborder " "
+          , ltext $ coverBar (coverPercentage tests count) minimum
+          , lborder ""
+          , ltext lminimum
+          ]
 
 
     where wcover : Doc opts
-          wcover = leftPad w.widthPercentage . line $
-                   renderCoverPercentage (coverPercentage tests count)
+          wcover =
+            leftPad w.widthPercentage . line $
+            renderCoverPercentage (coverPercentage tests count)
 
   coverage : TestCount -> Coverage CoverCount -> List (Doc opts)
   coverage tests x = map (label tests (coverageWidth tests x)) $ labels x
@@ -438,9 +448,10 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
   ppProgress name (MkReport tests cov status) =
     case status of
        Running =>
-         vsep $ [ icon RunningIcon '●' . markup RunningHeader $
-                  ppName name <++> line "passed \{testCount tests} (running)"
-                ] ++ coverage tests cov
+         vsep $
+           [ icon RunningIcon '●' . markup RunningHeader $
+             ppName name <++> line "passed \{testCount tests} (running)"
+           ] ++ coverage tests cov
 
        Shrinking failure =>
          icon ShrinkingIcon '↯' . markup ShrinkingHeader $
@@ -459,30 +470,33 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
   ppResult name (MkReport tests cov result) =
     case result of
       Failed failure =>
-        vsep $ [ icon FailedIcon '✗' . markup FailedText $
-                 ppName name <++>
-                 line "failed after \{testCount tests}."
-               ] ++
-               coverage tests cov ++
-               failureReport name tests failure
+        vsep $
+        [ icon FailedIcon '✗' . markup FailedText $
+          ppName name <++>
+          line "failed after \{testCount tests}."
+        ] ++
+        coverage tests cov ++
+        failureReport name tests failure
 
-      OK => vsep $ [ icon SuccessIcon '✓' . markup SuccessText $
-                     ppName name <++> line "passed \{testCount tests}."
-                   ] ++
-                   coverage tests cov
+      OK =>
+        vsep $
+          [ icon SuccessIcon '✓' . markup SuccessText $
+            ppName name <++> line "passed \{testCount tests}."
+          ] ++
+          coverage tests cov
 
   export
   ppSummary : Summary -> Doc opts
   ppSummary summary =
-    let complete = summaryCompleted summary == summaryTotal summary
-        suffix = if complete then line "." else line " (running)"
+    let complete := summaryCompleted summary == summaryTotal summary
+        suffix   := if complete then line "." else line " (running)"
 
      in annotateSummary summary .
-        (<+> suffix) .
-        hcat .
-        addPrefix complete .
-        intersperse (line ", ") $
-        catMaybes [
+          (<+> suffix)
+        . hcat
+        . addPrefix complete
+        . intersperse (line ", ")
+        $ catMaybes [
             whenNonZero "failed" summary.failed
           , if complete then
               whenNonZero "succeeded" summary.ok
@@ -490,16 +504,17 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
               Nothing
         ]
 
-    where doPrefix : Bool -> Doc opts -> Doc opts
-          doPrefix True _    = empty
-          doPrefix False end =
-            let pc1 := propertyCount (summaryCompleted summary)
-                pc2 := propertyCount (summaryTotal summary)
-             in line "\{pc1} / \{pc2} complete" <+> end
+    where
+      doPrefix : Bool -> Doc opts -> Doc opts
+      doPrefix True _    = empty
+      doPrefix False end =
+        let pc1 := propertyCount (summaryCompleted summary)
+            pc2 := propertyCount (summaryTotal summary)
+         in line "\{pc1} / \{pc2} complete" <+> end
 
-          addPrefix : Bool -> List (Doc opts) -> List (Doc opts)
-          addPrefix complete [] = [doPrefix complete empty]
-          addPrefix complete xs = doPrefix complete ": " :: xs
+      addPrefix : Bool -> List (Doc opts) -> List (Doc opts)
+      addPrefix complete [] = [doPrefix complete empty]
+      addPrefix complete xs = doPrefix complete ": " :: xs
 
 public export
 LL80 : LayoutOpts
@@ -526,35 +541,34 @@ renderSummary color = renderDoc . ppSummary color
 --------------------------------------------------------------------------------
 
 export
-report :  (aborted : Bool)
-       -> TestCount
-       -> Size
-       -> Seed
-       -> Coverage CoverCount
-       -> Maybe Confidence
-       -> Report Result
+report :
+     (aborted : Bool)
+  -> TestCount
+  -> Size
+  -> Seed
+  -> Coverage CoverCount
+  -> Maybe Confidence
+  -> Report Result
 report aborted tests size seed cover conf =
-  let failureReport = \msg =>
+  let failureReport := \msg =>
         MkReport tests cover . Failed $
           mkFailure size seed 0 (Just cover) msg Nothing []
 
-      coverageReached = successVerified tests cover conf
+      coverageReached := successVerified tests cover conf
 
-      labelsCovered = coverageSuccess tests cover
+      labelsCovered := coverageSuccess tests cover
 
-      successReport = MkReport tests cover OK
+      successReport := MkReport tests cover OK
 
       confidenceReport =
         if coverageReached && labelsCovered
            then successReport
-           else failureReport $
-                  "Test coverage cannot be reached after " <+>
-                  show tests <+>
-                  " tests"
+           else
+             failureReport
+               "Test coverage cannot be reached after \{show tests} tests"
 
   in if aborted then confidenceReport
      else if labelsCovered then successReport
-     else failureReport $
-          "Labels not sufficently covered after " <+>
-          show tests <+>
-          " tests"
+     else
+       failureReport $
+         "Labels not sufficently covered after \{show tests} tests"
