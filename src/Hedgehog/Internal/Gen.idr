@@ -424,6 +424,11 @@ public export %inline
 bool : Gen Bool
 bool = element [False,True]
 
+||| Generates constant values of type `Unit"
+export %inline
+unit : Gen ()
+unit = pure ()
+
 --------------------------------------------------------------------------------
 --          Character
 --------------------------------------------------------------------------------
