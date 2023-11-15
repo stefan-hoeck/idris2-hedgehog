@@ -11,6 +11,7 @@ depends    = base         >= 0.6.0
            , getopts
            , prettier-ansi
            , pretty-show
+           , random-pure
            , sop
 
 modules = Data.Bounded
@@ -28,7 +29,6 @@ modules = Data.Bounded
         , Hedgehog.Internal.Range
         , Hedgehog.Internal.Report
         , Hedgehog.Internal.Runner
-        , Hedgehog.Internal.Seed
         , Hedgehog.Internal.Shrink
         , Hedgehog.Internal.Terminal
         , Hedgehog.Internal.Util

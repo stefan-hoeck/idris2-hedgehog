@@ -8,8 +8,9 @@ import Data.String
 
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Range
-import Hedgehog.Internal.Seed
 import Hedgehog.Internal.Util
+
+import System.Random.Pure.StdGen
 
 %default total
 
@@ -21,7 +22,7 @@ import Hedgehog.Internal.Util
 |||
 ||| Due to technical properties of a seed type, instead of generating a seed
 ||| value from stratch we perturb some existing value.
-||| Thus, a function of this interface produces a `Seed -> Seed` function
+||| Thus, a function of this interface produces a `StdGen -> StdGen` function
 ||| being given a value of an appropriate type.
 |||
 ||| In some understanding, co-generators classify values of a given type, which
@@ -34,7 +35,7 @@ import Hedgehog.Internal.Util
 public export
 interface Cogen a where
   constructor MkCogen
-  perturb : a -> Seed -> Seed
+  perturb : a -> StdGen -> StdGen
 
 ||| This function perturbs the given seed both with `variant` and `split`.
 |||
@@ -65,7 +66,7 @@ interface Cogen a where
 ||| gives relative independence on how `perturb` of a constructor argument
 ||| type is implemented.
 export
-shiftArg : Seed -> Seed
+shiftArg : StdGen -> StdGen
 shiftArg = variant 33 . snd . split . variant 31
 
 ||| Changes random distribution of a generator of type `b`
@@ -92,7 +93,7 @@ Cogen Bool where
 
 export
 Cogen Nat where
-  perturb = variant . cast
+  perturb = variant
 
 export
 Cogen Integer where
@@ -100,7 +101,7 @@ Cogen Integer where
 
 export
 Cogen Bits64 where
-  perturb = variant
+  perturb = variant . cast
 
 export
 Cogen Bits16 where perturb = variant . cast
@@ -344,7 +345,7 @@ ShrCogen Integer where
 
       fromBits : (Bool, List Bool) -> Integer
       fromBits (sign, bits) = do
-        let body = foldl (\acc, b => acc * 2 + if b then 1 else 0) 0 bits
+        let body = foldl (\acc, b => acc * the Integer 2 + if b then 1 else 0) 0 bits
         if sign then body else negate $ body + 1
 
 export
