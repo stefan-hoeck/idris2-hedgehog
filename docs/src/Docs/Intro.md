@@ -158,7 +158,7 @@ Running the above results in output similar to this:
 >   + 1
 >
 >   This failure can be reproduced by running:
->   > recheck 6 (MkSeed 13575607214039863170 538475183012815285) propAddInts
+>   > recheck 6 (rawStdGen 13575607214039863170 538475183012815285) propAddInts
 ```
 
 Here, we are informed about the failed test together with a
@@ -208,7 +208,7 @@ In the first case, we get output similar to the following:
 >     [ 0 , 0 ]
 >
 >   This failure can be reproduced by running:
->   > recheck 0 (MkSeed 6832087575862183383 12092602541466451199) propIntGreaterApp
+>   > recheck 0 (rawStdGen 6832087575862183383 12092602541466451199) propIntGreaterApp
 ```
 
 As can be seen, the failing test is properly shrunk to the minimal
@@ -226,7 +226,7 @@ In the second case, however, the output is most likely similar to this:
 >     0
 >
 >   This failure can be reproduced by running:
->   > recheck 0 (MkSeed 9029460602319538061 261492196152102529) propIntGreaterMonad
+>   > recheck 0 (rawStdGen 9029460602319538061 261492196152102529) propIntGreaterMonad
 ```
 
 As can be seen, the first value is not properly shrunk to the minimal

@@ -25,8 +25,8 @@ data Z : Nat -> Type -> Type where
 export
 printZFun : Property
 printZFun = recheckGivenOutput expected prop 0 seed where
-  seed : Seed
-  seed = MkSeed 15646808624686066109 7037936686351694591
+  seed : StdGen
+  seed = rawStdGen 15646808624686066109 7037936686351694591
   prop : Property
   prop = property $ do
     fn <-

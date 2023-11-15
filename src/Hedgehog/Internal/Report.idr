@@ -6,8 +6,8 @@ import Derive.Prelude
 import Hedgehog.Internal.Config
 import Hedgehog.Internal.Property
 import Hedgehog.Internal.Range
-import Hedgehog.Internal.Seed
 import Hedgehog.Internal.Util
+import System.Random.Pure.StdGen
 import Text.Show.Diff
 import Text.PrettyPrint.Bernardy.ANSI
 
@@ -30,7 +30,7 @@ public export
 record FailureReport where
   constructor MkFailureReport
   size        : Size
-  seed        : Seed
+  seed        : StdGen
   shrinks     : ShrinkCount
   coverage    : Maybe (Coverage CoverCount)
   annotations : List (Lazy FailedAnnotation)
@@ -142,7 +142,7 @@ takeFootnote (LogLabel _)   = Nothing
 export
 mkFailure :
      Size
-  -> Seed
+  -> StdGen
   -> ShrinkCount
   -> Maybe (Coverage CoverCount)
   -> String
@@ -301,7 +301,7 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
       markup DiffSuffix (line suffix)
     ) :: map lineDiff (toLineDiff df)
 
-  reproduce : Maybe PropertyName -> Size -> Seed -> Doc opts
+  reproduce : Maybe PropertyName -> Size -> StdGen -> Doc opts
   reproduce name size seed =
     let prop  := line $ maybe "<property>" unTag name
         instr := prettyCon Open "recheck" [prettyArg size, prettyArg seed, prop]
@@ -545,7 +545,7 @@ report :
      (aborted : Bool)
   -> TestCount
   -> Size
-  -> Seed
+  -> StdGen
   -> Coverage CoverCount
   -> Maybe Confidence
   -> Report Result

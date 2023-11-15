@@ -18,23 +18,28 @@ trimDeep = filter (not . null) . map trim
 
 annotateSeedIfNeeded : List String -> PropertyT ()
 annotateSeedIfNeeded outs = do
-  let seeds = filter (isInfixOf "MkSeed") outs
+  let seeds = filter (isInfixOf "rawStdGen") outs
   for_ seeds $ footnote . delay
 
-containsEach : List String -> List String -> Bool
-containsEach []      (_::_)  = False
-containsEach (_::_)  []      = False
-containsEach []      []      = True
-containsEach (o::os) (i::is) = (i `isInfixOf` o) && containsEach os is
+containsEach :
+     (checkPrefixOnly : Bool)
+  -> (actual, expected : List String)
+  -> Bool
+containsEach _               []      (_::_)  = False
+containsEach checkPrefixOnly (_::_)  []      = checkPrefixOnly
+containsEach _               []      []      = True
+containsEach checkPrefixOnly (o::os) (i::is) =
+  (i `isInfixOf` o) && containsEach checkPrefixOnly os is
 
 doCheck :
-     (expected : String)
+     (checkPrefixOnly : Bool)
+  -> (expected : String)
   -> (forall m. HasTerminal m => Monad m => m ())
   -> PropertyT ()
-doCheck expected checker = do
+doCheck checkPrefixOnly expected checker = do
   let actual = trimDeep $ (>>= lines) $ execWriter $ checker @{StdoutOnly}
   annotateSeedIfNeeded actual
-  diff actual containsEach (trimDeep $ lines expected)
+  diff actual (containsEach checkPrefixOnly) (trimDeep $ lines expected)
 
 ||| A property checking that Hedgehog being run on a particular property
 ||| with particular configuration prints expected string.
@@ -44,13 +49,14 @@ doCheck expected checker = do
 ||| spaces are ignored in both the `expected` string, and Hedgehog's output.
 export
 recheckGivenOutput :
-     (expected : String)
+     {default False checkPrefixOnly : Bool}
+  -> (expected : String)
   -> (prop : Property)
   -> Size
-  -> Seed
+  -> StdGen
   -> Property
 recheckGivenOutput expected prop sz sd = property $
-  doCheck expected $ recheck sz sd prop
+  doCheck checkPrefixOnly expected $ recheck sz sd prop
 
 ||| A property checking that Hedgehog being run on a default configuration
 ||| and a random seed prints expected string.
@@ -59,8 +65,12 @@ recheckGivenOutput expected prop sz sd = property $
 ||| line of `expected` string as a substring. Empty lines, leading and traling
 ||| spaces are ignored in both the `expected` string, and Hedgehog's output.
 export
-checkGivenOutput : (expected : String) -> (prop : Property) -> Property
+checkGivenOutput :
+     {default False checkPrefixOnly : Bool}
+  -> (expected : String)
+  -> (prop : Property)
+  -> Property
 checkGivenOutput expected prop = property $ do
-  initSeed <- forAll $ integral_ $ constant 0 MaxRobustSmGenNum
-  doCheck expected $
-    ignore $ check @{Manual $ smGen initSeed} prop
+  initSeed <- forAll anyBits64
+  doCheck checkPrefixOnly expected $
+    ignore $ check @{ConstSeed $ mkStdGen initSeed} prop
