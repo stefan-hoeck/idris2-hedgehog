@@ -141,7 +141,7 @@ public export
 integral_ : ToInteger a => Range a -> Gen a
 integral_ range = generate $ \si,se =>
   let (x, y) := bounds si range
-   in fromInteger . fst $ nextIntegerR (toInteger x, toInteger y) se
+   in fromInteger . snd $ randomR (toInteger x, toInteger y) se
 
 ||| Generates a random integral number in the given @[inclusive,inclusive]@ range.
 |||
@@ -343,7 +343,7 @@ double_ : Range Double -> Gen Double
 double_ range =
   generate $ \si,se =>
     let (x, y) := bounds si range
-     in fst $ nextDoubleR x y se
+     in snd $ randomR (x, y) se
 
 ||| Generates a random floating-point number in the given range.
 |||
