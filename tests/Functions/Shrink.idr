@@ -1,6 +1,6 @@
 module Functions.Shrink
 
-import Common
+import Hedgehog.Meta
 
 export
 simpleFunPrint : Property

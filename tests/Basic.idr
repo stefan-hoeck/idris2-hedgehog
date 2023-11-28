@@ -1,6 +1,6 @@
 module Basic
 
-import Common
+import Hedgehog.Meta
 
 %default total
 
