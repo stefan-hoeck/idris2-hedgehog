@@ -1,6 +1,6 @@
 module Functions.NoShrink
 
-import Common
+import Hedgehog.Meta
 
 [FnStub] Show (Nat -> Nat) where
   show _ = "<fn>"

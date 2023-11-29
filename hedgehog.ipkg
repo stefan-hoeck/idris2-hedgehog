@@ -32,3 +32,4 @@ modules = Data.Bounded
         , Hedgehog.Internal.Shrink
         , Hedgehog.Internal.Terminal
         , Hedgehog.Internal.Util
+        , Hedgehog.Meta

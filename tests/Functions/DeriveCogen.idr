@@ -1,8 +1,8 @@
 module Functions.DeriveCogen
 
-import Common
-
 import Derive.Cogen
+
+import Hedgehog.Meta
 
 %language ElabReflection
 
