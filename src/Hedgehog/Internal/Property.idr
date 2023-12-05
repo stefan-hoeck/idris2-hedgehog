@@ -538,6 +538,7 @@ namespace Property
   mapConfig : (PropertyConfig -> PropertyConfig) -> Property -> Property
   mapConfig f p = { config $= f } p
 
+  export
   verifiedTermination : Property -> Property
   verifiedTermination =
     mapConfig $ \config =>
