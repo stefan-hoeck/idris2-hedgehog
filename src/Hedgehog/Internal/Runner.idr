@@ -2,6 +2,7 @@ module Hedgehog.Internal.Runner
 
 import Data.Colist
 import Data.Cotree
+import Data.Maybe
 import Hedgehog.Internal.Config
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Options
@@ -72,14 +73,14 @@ takeSmallest si se (MkTagged slimit) updateUI t = do
 checkReport :
      {auto _ : Monad m}
   -> PropertyConfig
-  -> Size
+  -> Maybe Size
   -> Seed
   -> PropertyT ()
   -> (Report Progress -> m ())
   -> m (Report Result)
 checkReport cfg si0 se0 test updateUI =
-  let (conf, MkTagged numTests) := unCriteria cfg.terminationCriteria
-   in loop numTests 0 si0 se0 neutral conf
+  let (conf, MkTagged numTests, initSz) := unCriteria cfg.terminationCriteria
+   in loop numTests 0 (fromMaybe initSz si0) se0 neutral conf
 
   where
     loop :
@@ -126,7 +127,7 @@ checkTerm :
   -> Terminal m
   -> UseColor
   -> Maybe PropertyName
-  -> Size
+  -> Maybe Size
   -> Seed
   -> Property
   -> m (Report Result)
@@ -152,7 +153,7 @@ checkWith :
   -> Property
   -> m (Report Result)
 checkWith term color name prop =
-  initSMGen >>= \se => checkTerm term color name 0 se prop
+  initSMGen >>= \se => checkTerm term color name Nothing se prop
 
 ||| Check a property.
 export
@@ -198,7 +199,8 @@ recheck :
 recheck si se prop = do
   color <- detectColor
   term  <- console
-  _     <- checkTerm term color Nothing si se (withTests 1 prop)
+  let prop = noVerifiedTermination $ withTests 1 prop
+  _     <- checkTerm term color Nothing (Just si) se prop
   pure ()
 
 checkGroupWith :

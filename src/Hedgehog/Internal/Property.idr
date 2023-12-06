@@ -8,6 +8,7 @@ import Data.DPair
 import Data.Lazy
 import Derive.Prelude
 import Hedgehog.Internal.Gen
+import Hedgehog.Internal.Range
 import Hedgehog.Internal.Util
 import Text.Show.Diff
 import Text.Show.Pretty
@@ -304,12 +305,16 @@ data TerminationCriteria : Type where
 
 %runElab derive "TerminationCriteria" [Show,Eq]
 
+||| Returns main paramters of the termination criteria
+|||
+||| Returned size is the minimal starting size according to the criteria.
+||| For confidence-checking criteria it is important to start with maximal size
+||| to achieve correct distribution.
 public export
-unCriteria : TerminationCriteria -> (Maybe Confidence, TestLimit)
-unCriteria (EarlyTermination c t)      = (Just c, t)
-unCriteria (NoEarlyTermination c t)    = (Just c, t)
-unCriteria (NoConfidenceTermination t) = (Nothing, t)
-
+unCriteria : TerminationCriteria -> (Maybe Confidence, TestLimit, Size)
+unCriteria (EarlyTermination c t)      = (Just c, t, maxSize)
+unCriteria (NoEarlyTermination c t)    = (Just c, t, maxSize)
+unCriteria (NoConfidenceTermination t) = (Nothing, t, minSize)
 
 ||| Configuration for a property test.
 public export
@@ -544,14 +549,23 @@ namespace Property
 
   export
   verifiedTermination : Property -> Property
-  verifiedTermination =
-    mapConfig $ \config =>
-      let
-        newTerminationCriteria := case config.terminationCriteria of
-          NoEarlyTermination c tests    => EarlyTermination c tests
-          NoConfidenceTermination tests => EarlyTermination defaultConfidence tests
-          EarlyTermination c tests      => EarlyTermination c tests
-      in { terminationCriteria := newTerminationCriteria } config
+  verifiedTermination = mapConfig { terminationCriteria $= setEarlyTermination }
+
+    where
+      setEarlyTermination : TerminationCriteria -> TerminationCriteria
+      setEarlyTermination (NoEarlyTermination c n)    = EarlyTermination c n
+      setEarlyTermination (NoConfidenceTermination n) = EarlyTermination defaultConfidence n
+      setEarlyTermination (EarlyTermination c n)      = EarlyTermination c n
+
+  export
+  noVerifiedTermination : Property -> Property
+  noVerifiedTermination = mapConfig { terminationCriteria $= setNoConfidence }
+
+    where
+      setNoConfidence : TerminationCriteria -> TerminationCriteria
+      setNoConfidence (NoEarlyTermination _ n)    = NoConfidenceTermination n
+      setNoConfidence (NoConfidenceTermination n) = NoConfidenceTermination n
+      setNoConfidence (EarlyTermination _ n)      = NoConfidenceTermination n
 
   ||| Adjust the number of times a property should be executed before it is considered
   ||| successful.
@@ -590,7 +604,7 @@ namespace Property
     where
       setConfidence : TerminationCriteria -> TerminationCriteria
       setConfidence (NoEarlyTermination _ n)    = NoEarlyTermination c n
-      setConfidence (NoConfidenceTermination n) = NoConfidenceTermination n
+      setConfidence (NoConfidenceTermination n) = NoEarlyTermination c n
       setConfidence (EarlyTermination _ n)      = EarlyTermination c n
 
 ||| Creates a property with the default configuration.
