@@ -50,6 +50,10 @@ Semigroup (Tagged t Nat) where (<+>) = (+)
 public export %inline
 Monoid (Tagged t Nat) where neutral = 0
 
+public export %inline
+Show a => Interpolation (Tagged t a) where
+  interpolate (MkTagged x) = show x
+
 ||| The total number of tests which are covered by a classifier.
 |||
 ||| Can be constructed using numeric literals.
