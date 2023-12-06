@@ -34,6 +34,7 @@ data Tag =
   | ShrinkLimitTag
   | TestCountTag
   | TestLimitTag
+  | EarlyTermLowerBoundTag
 
 %runElab derive "Tag" [Show,Eq,Ord]
 
@@ -96,6 +97,14 @@ TestCount = Tagged TestCountTag Nat
 public export
 0 TestLimit : Type
 TestLimit = Tagged TestLimitTag Nat
+
+||| The number of successful tests that need to be run before the first check
+||| of a confidence interval at the early termination mode.
+|||
+||| Can be constructed using numeric literals.
+public export
+0 EarlyTermLowerBound : Type
+EarlyTermLowerBound = Tagged EarlyTermLowerBoundTag Nat
 
 ||| The name of a property.
 public export
@@ -299,7 +308,7 @@ Traversable Coverage where
 
 public export
 data TerminationCriteria : Type where
-  EarlyTermination        : Confidence -> TestLimit -> TerminationCriteria
+  EarlyTermination        : Confidence -> TestLimit -> EarlyTermLowerBound -> TerminationCriteria
   NoEarlyTermination      : Confidence -> TestLimit -> TerminationCriteria
   NoConfidenceTermination : TestLimit -> TerminationCriteria
 
@@ -312,7 +321,7 @@ data TerminationCriteria : Type where
 ||| to achieve correct distribution.
 public export
 unCriteria : TerminationCriteria -> (Maybe Confidence, TestLimit, Size)
-unCriteria (EarlyTermination c t)      = (Just c, t, maxSize)
+unCriteria (EarlyTermination c t _)    = (Just c, t, maxSize)
 unCriteria (NoEarlyTermination c t)    = (Just c, t, maxSize)
 unCriteria (NoConfidenceTermination t) = (Nothing, t, minSize)
 
@@ -329,6 +338,10 @@ record PropertyConfig where
 public export
 defaultMinTests : TestLimit
 defaultMinTests = 100
+
+public export
+defaultLowerBound : EarlyTermLowerBound
+defaultLowerBound = MkTagged $ unTag defaultMinTests
 
 ||| The default confidence allows one false positive in 10^9 tests
 public export
@@ -548,14 +561,16 @@ namespace Property
   mapConfig f p = { config $= f } p
 
   export
-  verifiedTermination : Property -> Property
+  verifiedTermination :
+       {default defaultLowerBound min : EarlyTermLowerBound}
+    -> Property -> Property
   verifiedTermination = mapConfig { terminationCriteria $= setEarlyTermination }
 
     where
       setEarlyTermination : TerminationCriteria -> TerminationCriteria
-      setEarlyTermination (NoEarlyTermination c n)    = EarlyTermination c n
-      setEarlyTermination (NoConfidenceTermination n) = EarlyTermination defaultConfidence n
-      setEarlyTermination (EarlyTermination c n)      = EarlyTermination c n
+      setEarlyTermination (NoEarlyTermination c n)    = EarlyTermination c n min
+      setEarlyTermination (NoConfidenceTermination n) = EarlyTermination defaultConfidence n min
+      setEarlyTermination (EarlyTermination c n lb)   = EarlyTermination c n min
 
   export
   noVerifiedTermination : Property -> Property
@@ -565,7 +580,7 @@ namespace Property
       setNoConfidence : TerminationCriteria -> TerminationCriteria
       setNoConfidence (NoEarlyTermination _ n)    = NoConfidenceTermination n
       setNoConfidence (NoConfidenceTermination n) = NoConfidenceTermination n
-      setNoConfidence (EarlyTermination _ n)      = NoConfidenceTermination n
+      setNoConfidence (EarlyTermination _ n _)    = NoConfidenceTermination n
 
   ||| Adjust the number of times a property should be executed before it is considered
   ||| successful.
@@ -577,7 +592,7 @@ namespace Property
       setLimit : TerminationCriteria -> TerminationCriteria
       setLimit (NoEarlyTermination c n)    = NoEarlyTermination c (f n)
       setLimit (NoConfidenceTermination n) = NoConfidenceTermination (f n)
-      setLimit (EarlyTermination c n)      = EarlyTermination c (f n)
+      setLimit (EarlyTermination c n lb)   = EarlyTermination c (f n) lb
 
   ||| Set the number of times a property should be executed before it is considered
   ||| successful.
@@ -605,7 +620,7 @@ namespace Property
       setConfidence : TerminationCriteria -> TerminationCriteria
       setConfidence (NoEarlyTermination _ n)    = NoEarlyTermination c n
       setConfidence (NoConfidenceTermination n) = NoEarlyTermination c n
-      setConfidence (EarlyTermination _ n)      = EarlyTermination c n
+      setConfidence (EarlyTermination _ n lb)   = EarlyTermination c n lb
 
 ||| Creates a property with the default configuration.
 export
@@ -845,10 +860,10 @@ abortEarly :
   -> Coverage CoverCount
   -> Maybe Confidence
   -> Bool
-abortEarly (EarlyTermination _ _) tests cover conf =
+abortEarly (EarlyTermination _ _ etMinTests) tests cover conf =
   let coverageReached     := successVerified tests cover conf
       coverageUnreachable := failureVerified tests cover conf
-   in unTag tests >= unTag defaultMinTests &&
+   in unTag tests >= unTag etMinTests &&
       (coverageReached || coverageUnreachable)
 
 abortEarly _ _ _ _ = False
