@@ -565,10 +565,10 @@ report aborted tests size seed cover conf =
            then successReport
            else
              failureReport
-               "Test coverage cannot be reached after \{show tests} tests"
+               "Test coverage cannot be reached after \{tests} tests"
 
   in if aborted then confidenceReport
      else if labelsCovered then successReport
      else
        failureReport $
-         "Labels not sufficently covered after \{show tests} tests"
+         "Labels not sufficently covered after \{tests} tests"
