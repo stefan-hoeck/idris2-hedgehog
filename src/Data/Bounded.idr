@@ -1,5 +1,7 @@
 module Data.Bounded
 
+import Data.Fin
+
 %default total
 
 public export
@@ -83,3 +85,11 @@ MinBound Int where
 public export %inline
 MaxBound Int where
   maxBound = 0x7fffffffffffffff
+
+public export %inline
+MinBound (Fin (S n)) where
+  minBound = 0
+
+public export %inline
+{n : _} -> MaxBound (Fin (S n)) where
+  maxBound = last
