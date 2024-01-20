@@ -92,7 +92,7 @@ Cogen Bool where
 
 export
 Cogen Nat where
-  perturb = variant . cast
+  perturb = variant
 
 export
 Cogen Integer where
@@ -100,7 +100,7 @@ Cogen Integer where
 
 export
 Cogen Bits64 where
-  perturb = variant
+  perturb = variant . cast
 
 export
 Cogen Bits16 where perturb = variant . cast
