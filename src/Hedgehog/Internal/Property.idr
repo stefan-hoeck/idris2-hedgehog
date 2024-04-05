@@ -481,14 +481,14 @@ diff :
   -> a -> (a -> b -> Bool) -> b -> TestT m ()
 diff x op y = if x `op` y then success else failDiff x y
 
-infix 6 ===
+export infix 6 ===
 
 ||| Fails the test if the two arguments provided are not equal.
 export %inline
 (===) : Eq a => Show a => Monad m => a -> a -> TestT m ()
 (===) x y = diff x (==) y
 
-infix 4 /==
+export infix 4 /==
 
 ||| Fails the test if the two arguments provided are equal.
 export %inline
