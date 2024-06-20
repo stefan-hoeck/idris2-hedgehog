@@ -227,7 +227,7 @@ dargdepfun_ bg =
 -- Claessen, K. Shrinking and showing functions:(functional pearl).
 -- In ACM SIGPLAN Notices (Vol. 47, No. 12, pp. 73-80). ACM. 2012, September
 
-infixr 5 :->
+export infixr 5 :->
 
 ||| A type of reified partial functions that can be represented isomorphic
 ||| to a function defined by pattern matching of an ADT
