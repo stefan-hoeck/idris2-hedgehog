@@ -63,4 +63,4 @@ checkGivenOutput : (expected : String) -> (prop : Property) -> Property
 checkGivenOutput expected prop = property $ do
   initSeed <- forAll $ integral_ $ constant 0 MaxRobustSmGenNum
   doCheck expected $
-    ignore $ check @{DefaultConfig} @{Manual $ smGen initSeed} prop
+    ignore $ check @{Manual $ smGen initSeed} @{DefaultConfig} prop
