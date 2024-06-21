@@ -50,7 +50,7 @@ recheckGivenOutput :
   -> Seed
   -> Property
 recheckGivenOutput expected prop sz sd = property $
-  doCheck expected $ recheck @{DefaultConfig} sz sd prop
+  doCheck expected $ recheck sz sd prop
 
 ||| A property checking that Hedgehog being run on a default configuration
 ||| and a random seed prints expected string.
@@ -63,4 +63,4 @@ checkGivenOutput : (expected : String) -> (prop : Property) -> Property
 checkGivenOutput expected prop = property $ do
   initSeed <- forAll $ integral_ $ constant 0 MaxRobustSmGenNum
   doCheck expected $
-    ignore $ check @{DefaultConfig} @{Manual $ smGen initSeed} prop
+    ignore $ check @{Manual $ smGen initSeed} prop

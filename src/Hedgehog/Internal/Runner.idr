@@ -158,8 +158,8 @@ checkWith term color name prop =
 ||| Check a property.
 export
 checkNamed :
-     {auto _ : HasConfig m}
-  -> {auto _ : CanInitSeed m}
+     {auto _ : CanInitSeed m}
+  -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
   -> PropertyName
@@ -174,8 +174,8 @@ checkNamed name prop = do
 ||| Check a property.
 export
 check :
-     {auto _ : HasConfig m}
-  -> {auto _ : CanInitSeed m}
+     {auto _ : CanInitSeed m}
+  -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
   -> Property
@@ -222,8 +222,8 @@ checkGroupWith term color = run neutral
 
 export
 checkGroup :
-     {auto _ : HasConfig m}
-  -> {auto _ : CanInitSeed m}
+     {auto _ : CanInitSeed m}
+  -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
   -> Group

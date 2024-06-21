@@ -71,7 +71,9 @@ HasIO io => HasConfig io where
 |||
 ||| This implementation is applicable for any applicative context,
 ||| including pure ones.
-export -- should be a `%defaulthint`, but does not work due to issue #2850
-[DefaultConfig] Applicative m => HasConfig m where
-  detectColor     = pure DisableColor
-  detectVerbosity = pure Normal
+export %defaulthint
+DefaultConfig : Applicative m => HasConfig m
+DefaultConfig = D where
+  [D] HasConfig m where
+    detectColor     = pure DisableColor
+    detectVerbosity = pure Normal
