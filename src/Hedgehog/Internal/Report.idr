@@ -243,8 +243,8 @@ shrinkCount (MkTagged n) = show n ++ " shrinks"
 propertyCount (MkTagged n) = show n
 
 renderCoverPercentage : CoverPercentage -> String
-renderCoverPercentage (MkTagged p) =
-  show (round {a = Double} (p * 10.0) / 10.0) ++ "%"
+renderCoverPercentage p =
+  show (round {a = Double} (p.asDouble * 10.0) / 10.0) ++ "%"
 
 labelWidth : TestCount -> Label CoverCount -> ColumnWidth
 labelWidth tests x =
@@ -370,11 +370,11 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
   leftPad n doc = doc >>= \l => pure $ indent (n `minus` width l) l
 
   coverBar : CoverPercentage -> CoverPercentage -> Doc opts
-  coverBar (MkTagged percentage) (MkTagged minimum) =
+  coverBar percentage minimum =
     let barWidth         := the Nat 20
-        coverageRatio    := percentage / 100.0
+        coverageRatio    := percentage.asDouble / 100.0
         coverageWidth    := toNat . floor $ coverageRatio * cast barWidth
-        minimumRatio     := minimum / 100.0
+        minimumRatio     := minimum.asDouble / 100.0
         minimumWidth     := toNat . floor $ minimumRatio * cast barWidth
         fillWidth        := barWidth `minus` S coverageWidth
         fillErrorWidth   := minimumWidth `minus` S coverageWidth

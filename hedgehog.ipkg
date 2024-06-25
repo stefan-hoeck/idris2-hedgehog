@@ -13,6 +13,7 @@ depends    = base         >= 0.6.0
            , pretty-show
            , random-pure
            , sop
+           , summary-stat
 
 modules = Data.Bounded
         , Data.Cotree
