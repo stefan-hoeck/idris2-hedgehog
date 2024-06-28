@@ -24,7 +24,7 @@ CogenVis vis nms p = do
     perturbClaim : Name -> ParamTypeInfo -> Decl
     perturbClaim fun p =
       simpleClaim vis fun $
-        piAll `(~(p.applied) -> Seed -> Seed) $ allImplicits p "Cogen"
+        piAll `(~(p.applied) -> StdGen -> StdGen) $ allImplicits p "Cogen"
 
     perturbDef : Name -> TypeInfo -> Decl
     perturbDef fun ti =
@@ -41,7 +41,7 @@ CogenVis vis nms p = do
 
         rhs : SnocList TTImp -> TTImp
         rhs = foldr (\l, r => `(~l . ~r))
-                    `(Seed.variant ~(primVal $ B64 $ cast idx))
+                    `(System.Random.Pure.variant (fromInteger ~(primVal $ BI $ cast idx)))
 
     cogenImplClaim : Name -> ParamTypeInfo -> Decl
     cogenImplClaim impl p = implClaimVis vis impl $ implType "Cogen" p

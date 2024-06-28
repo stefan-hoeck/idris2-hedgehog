@@ -4,12 +4,14 @@ import Control.Monad.Either
 import Control.Monad.Identity
 import Control.Monad.Trans
 import Control.Monad.Writer
-import Data.DPair
 import Data.Lazy
+import public Data.Double.Bounded
+import Data.DPair
 import Derive.Prelude
 import Hedgehog.Internal.Gen
 import Hedgehog.Internal.Range
 import Hedgehog.Internal.Util
+import Statistics.Confidence
 import Text.Show.Diff
 import Text.Show.Pretty
 
@@ -25,7 +27,6 @@ public export
 data Tag =
     ConfidenceTag
   | CoverCountTag
-  | CoverPercentageTag
   | GroupNameTag
   | LabelNameTag
   | PropertyCountTag
@@ -132,10 +133,16 @@ namespace Confidence
     -> Confidence
   fromInteger n = MkConfidence (fromInteger n) prf
 
+  export
+  toProbability : Confidence -> Probability
+  toProbability $ MkConfidence c _ =
+    -- we can do `ratio` because `c` is `>= 2` due to `prf`
+    ratio 1 (cast c) @{believe_me Oh} @{believe_me Oh}
+
 ||| The relative number of tests which are covered by a classifier.
 public export
 0 CoverPercentage : Type
-CoverPercentage = Tagged CoverPercentageTag Double
+CoverPercentage = DoubleBetween 0 100
 
 ||| The name of a classifier.
 public export
@@ -682,9 +689,7 @@ namespace Group
 export
 coverPercentage : TestCount -> CoverCount -> CoverPercentage
 coverPercentage (MkTagged tests) (MkTagged count) =
-  let percentage  := the Double (cast count / cast tests * 100)
-      thousandths := round {a = Double} $ percentage * 10
-  in MkTagged (thousandths / 10)
+  roughlyFit $ (cast count / cast tests) * 100
 
 export
 labelCovered : TestCount -> Label CoverCount -> Bool
@@ -773,43 +778,17 @@ journalCoverage =
 --          Confidence
 --------------------------------------------------------------------------------
 
--- not strictly true, but holds for the values we generate
--- in this module
-times : InUnit -> InUnit -> InUnit
-times (Element x _) (Element y _) =
-  Element (x * y) (believe_me (Refl {x = True}))
-
-oneMin : InUnit -> InUnit
-oneMin (Element v _) = Element (1.0 - v) (believe_me (Refl {x = True} ))
-
-half : InUnit -> InUnit
-half = times (Element 0.5 Refl)
-
--- In order to get an accurate measurement with small sample sizes, we're
--- using the Wilson score interval
--- (<https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Wilson_score_interval wikipedia>)
--- instead of a normal approximation interval.
-wilsonBounds : Nat -> Nat -> InUnit -> (Double, Double)
-wilsonBounds positives count acceptance =
-  let
-    p := the Double (cast positives / cast count)
-    n := the Double (cast count)
-    z := invnormcdf $ oneMin (half acceptance)
-
-    midpoint := p + z * z / (2 * n)
-
-    offset := z / (1 + z * z / n) * sqrt (p * (1 - p) / n + z * z / (4 * n * n))
-
-    denominator := 1 + z * z / n
-
-    low := (midpoint - offset) / denominator
-
-    high := (midpoint + offset) / denominator
-  in (low, high)
-
-boundsForLabel : TestCount -> Confidence -> Label CoverCount -> (Double, Double)
-boundsForLabel (MkTagged tests) (MkConfidence c ib) lbl =
-  wilsonBounds (unTag lbl.labelAnnotation) tests (recipBits64 (Element c ib))
+boundsForLabel :
+     TestCount
+  -> Confidence
+  -> Label CoverCount
+  -> (Probability, Probability)
+boundsForLabel (MkTagged tests) c lbl = do
+  let (tests ** _) : (k ** IsSucc k) = case tests of
+                                         Z       => (1 ** ItIsSucc)
+                                         k@(S n) => (k ** ItIsSucc)
+  let succ = P $ roughlyFit $ cast (unTag lbl.labelAnnotation) / cast tests
+  wilsonBounds (toProbability c) tests succ
 
 ||| Is true when the test coverage satisfies the specified 'Confidence'
 ||| contstraint for all 'Coverage CoverCount's
@@ -821,8 +800,7 @@ confidenceSuccess tests confidence =
   where
     assertLow : Label CoverCount -> Bool
     assertLow cc =
-      fst (boundsForLabel tests confidence cc) >=
-      unTag cc.labelMinimum / 100.0
+      fst (boundsForLabel tests confidence cc) >= cc.labelMinimum.percent
 
 ||| Is true when there exists a label that is sure to have failed according to
 ||| the 'Confidence' constraint
@@ -834,8 +812,7 @@ confidenceFailure tests confidence =
   where
     assertHigh : Label CoverCount -> Bool
     assertHigh cc =
-      snd (boundsForLabel tests confidence cc) <
-      (unTag cc.labelMinimum / 100.0)
+      snd (boundsForLabel tests confidence cc) < cc.labelMinimum.percent
 
 export
 multOf100 : TestCount -> Bool

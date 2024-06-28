@@ -8,7 +8,8 @@ import public Hedgehog.Internal.Function as Hedgehog
 import public Hedgehog.Internal.Property as Hedgehog
 import public Hedgehog.Internal.Range as Hedgehog
 import public Hedgehog.Internal.Runner as Hedgehog
-import public Hedgehog.Internal.Seed as Hedgehog
 import public Hedgehog.Internal.Shrink as Hedgehog
 import public Hedgehog.Internal.Terminal as Hedgehog
 import public Hedgehog.Internal.Util as Hedgehog
+
+import public System.Random.Pure.StdGen

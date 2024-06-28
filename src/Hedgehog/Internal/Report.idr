@@ -6,8 +6,8 @@ import Derive.Prelude
 import Hedgehog.Internal.Config
 import Hedgehog.Internal.Property
 import Hedgehog.Internal.Range
-import Hedgehog.Internal.Seed
 import Hedgehog.Internal.Util
+import System.Random.Pure.StdGen
 import Text.Show.Diff
 import Text.PrettyPrint.Bernardy.ANSI
 
@@ -30,7 +30,7 @@ public export
 record FailureReport where
   constructor MkFailureReport
   size        : Size
-  seed        : Seed
+  seed        : StdGen
   shrinks     : ShrinkCount
   coverage    : Maybe (Coverage CoverCount)
   annotations : List (Lazy FailedAnnotation)
@@ -142,7 +142,7 @@ takeFootnote (LogLabel _)   = Nothing
 export
 mkFailure :
      Size
-  -> Seed
+  -> StdGen
   -> ShrinkCount
   -> Maybe (Coverage CoverCount)
   -> String
@@ -243,8 +243,8 @@ shrinkCount (MkTagged n) = show n ++ " shrinks"
 propertyCount (MkTagged n) = show n
 
 renderCoverPercentage : CoverPercentage -> String
-renderCoverPercentage (MkTagged p) =
-  show (round {a = Double} (p * 10.0) / 10.0) ++ "%"
+renderCoverPercentage p =
+  show (round {a = Double} (p.asDouble * 10.0) / 10.0) ++ "%"
 
 labelWidth : TestCount -> Label CoverCount -> ColumnWidth
 labelWidth tests x =
@@ -301,7 +301,7 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
       markup DiffSuffix (line suffix)
     ) :: map lineDiff (toLineDiff df)
 
-  reproduce : Maybe PropertyName -> Size -> Seed -> Doc opts
+  reproduce : Maybe PropertyName -> Size -> StdGen -> Doc opts
   reproduce name size seed =
     let prop  := line $ maybe "<property>" unTag name
         instr := prettyCon Open "recheck" [prettyArg size, prettyArg seed, prop]
@@ -370,11 +370,11 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
   leftPad n doc = doc >>= \l => pure $ indent (n `minus` width l) l
 
   coverBar : CoverPercentage -> CoverPercentage -> Doc opts
-  coverBar (MkTagged percentage) (MkTagged minimum) =
+  coverBar percentage minimum =
     let barWidth         := the Nat 20
-        coverageRatio    := percentage / 100.0
+        coverageRatio    := percentage.asDouble / 100.0
         coverageWidth    := toNat . floor $ coverageRatio * cast barWidth
-        minimumRatio     := minimum / 100.0
+        minimumRatio     := minimum.asDouble / 100.0
         minimumWidth     := toNat . floor $ minimumRatio * cast barWidth
         fillWidth        := barWidth `minus` S coverageWidth
         fillErrorWidth   := minimumWidth `minus` S coverageWidth
@@ -545,7 +545,7 @@ report :
      (aborted : Bool)
   -> TestCount
   -> Size
-  -> Seed
+  -> StdGen
   -> Coverage CoverCount
   -> Maybe Confidence
   -> Report Result
