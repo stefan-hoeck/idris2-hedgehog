@@ -5,6 +5,7 @@ import Hedgehog
 -- Modules with particluar tests:
 
 import Basic
+import Coverage
 import Functions.NoShrink
 import Functions.Shrink
 import Functions.DeriveCogen
@@ -23,6 +24,9 @@ main =
     , "basic shrinking generation" `MkGroup`
       [ ("simplePosGeneration", Basic.ShrinkGen.simplePosGeneration)
       , ("simpleNegGeneration", Basic.ShrinkGen.simpleNegGeneration)
+      ]
+    , "coverage checking" `MkGroup`
+      [ ("simpleCoverage", Coverage.simpleCoverage)
       ]
     , "non-shrinking function generaton" `MkGroup`
       [ ("simpleFunPrint", Functions.NoShrink.simpleFunPrint)

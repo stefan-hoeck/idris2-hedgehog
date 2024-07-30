@@ -221,7 +221,7 @@ enable nicely colorized output):
 >   + ]
 
 >   This failure can be reproduced by running:
->   > recheck 10 (MkSeed 17955597067191004859 1876035156183501547) <property>
+>   > recheck 10 (rawStdGen 17955597067191004859 1876035156183501547) <property>
 ```
 
 So, there is a problem with our lexer. Note, how Hedgehog yields a properly

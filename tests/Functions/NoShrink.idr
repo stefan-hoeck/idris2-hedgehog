@@ -7,7 +7,7 @@ import Hedgehog.Meta
 
 export
 simpleFunPrint : Property
-simpleFunPrint = recheckGivenOutput expected prop 4 (smGen 100)
+simpleFunPrint = recheckGivenOutput expected prop 4 (mkStdGen 100)
 
   where
     prop : Property
@@ -38,8 +38,8 @@ simpleFunNeg : Property
 simpleFunNeg = recheckGivenOutput expected prop 0 seed
 
   where
-    seed : Seed
-    seed = MkSeed 9961102074462960391 5599095101378422999
+    seed : StdGen
+    seed = rawStdGen 9961102074462960391 5599095101378422999
     prop : Property
     prop = property $ do
       fn <- forAll @{FnStub} $ function_ $ nat $ constant 0 999

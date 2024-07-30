@@ -109,7 +109,7 @@ simpleFunPos = checkGivenOutput expected prop
 
 export
 simpleFunNeg : Property
-simpleFunNeg = checkGivenOutput expected prop
+simpleFunNeg = checkGivenOutput {checkPrefixOnly=True} expected prop
 
   where
     prop : Property

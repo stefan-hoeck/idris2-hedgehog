@@ -15,9 +15,10 @@ import Data.Vect
 import Control.Monad.Maybe
 
 import Hedgehog.Internal.Range
-import Hedgehog.Internal.Seed
 import Hedgehog.Internal.Shrink
 import Hedgehog.Internal.Util
+
+import System.Random.Pure.StdGen
 
 %hide Prelude.Range
 
@@ -31,10 +32,10 @@ import Hedgehog.Internal.Util
 public export
 record Gen (a : Type) where
   constructor MkGen
-  unGen   : Size -> Seed -> Cotree a
+  unGen   : Size -> StdGen -> Cotree a
 
 public export %inline
-runGen : Size -> Seed -> Gen a -> Cotree a
+runGen : Size -> StdGen -> Gen a -> Cotree a
 runGen si se g = unGen g si se
 
 public export
@@ -82,7 +83,7 @@ Monad Gen where
 --------------------------------------------------------------------------------
 
 public export
-generate : (Size -> Seed -> a) -> Gen a
+generate : (Size -> StdGen -> a) -> Gen a
 generate  f = MkGen $ \si,se => pure (f si se)
 
 --------------------------------------------------------------------------------
@@ -141,7 +142,7 @@ public export
 integral_ : ToInteger a => Range a -> Gen a
 integral_ range = generate $ \si,se =>
   let (x, y) := bounds si range
-   in fromInteger . fst $ nextIntegerR (toInteger x, toInteger y) se
+   in fromInteger . snd $ randomR (toInteger x, toInteger y) se
 
 ||| Generates a random integral number in the given @[inclusive,inclusive]@ range.
 |||
@@ -343,7 +344,7 @@ double_ : Range Double -> Gen Double
 double_ range =
   generate $ \si,se =>
     let (x, y) := bounds si range
-     in fst $ nextDoubleR x y se
+     in snd $ randomR (x, y) se
 
 ||| Generates a random floating-point number in the given range.
 |||
@@ -652,7 +653,7 @@ sop p =
 |||
 ||| Use 'print' to generate a value from a random seed.
 export
-printWith : (HasIO io, Show a) => Size -> Seed -> Gen a -> io ()
+printWith : (HasIO io, Show a) => Size -> StdGen -> Gen a -> io ()
 printWith si se gen =
   let (MkCotree v fo) := runGen si se gen
       shrinks         := value <$> take 1000 fo
@@ -677,12 +678,12 @@ printWith si se gen =
 |||   > 'c'
 export
 print : Show a => HasIO io => Gen a -> io ()
-print gen = initSMGen >>= \se => printWith 100 se gen
+print gen = initSeed >>= \se => printWith 100 se gen
 
 ||| Generate a sample from a generator.
 export
 sample : HasIO io => Gen a -> io a
-sample gen = (value . gen.unGen 100) <$> initSMGen
+sample gen = (value . gen.unGen 100) <$> initSeed
 
 ||| Render the shrink tree produced by a generator, for the given size and
 ||| seed up to the given depth and width.
@@ -692,7 +693,7 @@ renderTree :
   -> (maxDepth : Nat)
   -> (maxWidth : Nat)
   -> Size
-  -> Seed
+  -> StdGen
   -> Gen a
   -> String
 renderTree md mw si se = drawTree
@@ -711,7 +712,7 @@ printTreeWith :
   -> (maxDepth : Nat)
   -> (maxWidth : Nat)
   -> Size
-  -> Seed
+  -> StdGen
   -> Gen a
   -> io ()
 printTreeWith md mw si se = putStrLn . renderTree md mw si se
@@ -741,4 +742,4 @@ printTree :
   -> (maxWidth : Nat)
   -> Gen a
   -> io ()
-printTree md mw gen = initSMGen >>= \se => printTreeWith md mw 100 se gen
+printTree md mw gen = initSeed >>= \se => printTreeWith md mw 100 se gen

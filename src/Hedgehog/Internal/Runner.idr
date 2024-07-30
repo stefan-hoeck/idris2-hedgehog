@@ -9,9 +9,9 @@ import Hedgehog.Internal.Options
 import Hedgehog.Internal.Property
 import Hedgehog.Internal.Range
 import Hedgehog.Internal.Report
-import Hedgehog.Internal.Seed
 import Hedgehog.Internal.Terminal
 import System
+import System.Random.Pure.StdGen
 
 %default total
 
@@ -34,7 +34,7 @@ shrink (S k) (t :: ts) b f = do
 takeSmallest :
      {auto _ : Monad m}
   -> Size
-  -> Seed
+  -> StdGen
   -> ShrinkLimit
   -> (Progress -> m ())
   -> Cotree TestRes
@@ -74,7 +74,7 @@ checkReport :
      {auto _ : Monad m}
   -> PropertyConfig
   -> Maybe Size
-  -> Seed
+  -> StdGen
   -> PropertyT ()
   -> (Report Progress -> m ())
   -> m (Report Result)
@@ -87,7 +87,7 @@ checkReport cfg si0 se0 test updateUI =
          Nat
       -> TestCount
       -> Size
-      -> Seed
+      -> StdGen
       -> Coverage CoverCount
       -> Maybe Confidence
       -> m (Report Result)
@@ -128,7 +128,7 @@ checkTerm :
   -> UseColor
   -> Maybe PropertyName
   -> Maybe Size
-  -> Seed
+  -> StdGen
   -> Property
   -> m (Report Result)
 checkTerm term color name si se prop = do
@@ -144,7 +144,7 @@ checkTerm term color name si se prop = do
   pure result
 
 checkWith :
-     {auto _ : CanInitSeed m}
+     {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
   -> Terminal m
@@ -153,12 +153,12 @@ checkWith :
   -> Property
   -> m (Report Result)
 checkWith term color name prop =
-  initSMGen >>= \se => checkTerm term color name Nothing se prop
+  initSeed >>= \se => checkTerm term color name Nothing se prop
 
 ||| Check a property.
 export
 checkNamed :
-     {auto _ : CanInitSeed m}
+     {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
@@ -174,7 +174,7 @@ checkNamed name prop = do
 ||| Check a property.
 export
 check :
-     {auto _ : CanInitSeed m}
+     {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
@@ -193,7 +193,7 @@ recheck :
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
   -> Size
-  -> Seed
+  -> StdGen
   -> Property
   -> m ()
 recheck si se prop = do
@@ -204,7 +204,7 @@ recheck si se prop = do
   pure ()
 
 checkGroupWith :
-     {auto _ : CanInitSeed m}
+     {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
   -> Terminal m
@@ -222,7 +222,7 @@ checkGroupWith term color = run neutral
 
 export
 checkGroup :
-     {auto _ : CanInitSeed m}
+     {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}

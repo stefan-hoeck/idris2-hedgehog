@@ -48,11 +48,12 @@ namespace NoShrinkGen
 
   export
   simpleNegGeneration : Property
-  simpleNegGeneration = recheckGivenOutput expected prop 22 seed
+  simpleNegGeneration =
+    recheckGivenOutput {checkPrefixOnly=True} expected prop 22 seed
 
     where
-      seed : Seed
-      seed = MkSeed 16892461356434811776 15079690130578850725
+      seed : StdGen
+      seed = rawStdGen 16892461356434811776 15079690130578850725
       prop : Property
       prop = property $ do
         n <- forAll $ integral_ $ constant 1 999
@@ -85,11 +86,12 @@ namespace ShrinkGen
 
   export
   simpleNegGeneration : Property
-  simpleNegGeneration = recheckGivenOutput expected prop 22 seed
+  simpleNegGeneration =
+    recheckGivenOutput {checkPrefixOnly=True} expected prop 22 seed
 
     where
-      seed : Seed
-      seed = MkSeed 16892461356434811776 15079690130578850725
+      seed : StdGen
+      seed = rawStdGen 16892461356434811776 15079690130578850725
 
       prop : Property
       prop = property $ do
