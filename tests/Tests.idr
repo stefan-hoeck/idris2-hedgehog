@@ -20,10 +20,14 @@ main =
     , "basic non-shrinking generation" `MkGroup`
       [ ("simplePosGeneration", Basic.NoShrinkGen.simplePosGeneration)
       , ("simpleNegGeneration", Basic.NoShrinkGen.simpleNegGeneration)
+      , ("forallsPosGeneration", Basic.NoShrinkGen.forallsPosGeneration)
+      , ("forallsNegGeneration", Basic.NoShrinkGen.forallsNegGeneration)
       ]
     , "basic shrinking generation" `MkGroup`
       [ ("simplePosGeneration", Basic.ShrinkGen.simplePosGeneration)
       , ("simpleNegGeneration", Basic.ShrinkGen.simpleNegGeneration)
+      , ("forallsPosGeneration", Basic.ShrinkGen.forallsPosGeneration)
+      , ("forallsNegGeneration", Basic.ShrinkGen.forallsNegGeneration)
       ]
     , "coverage checking" `MkGroup`
       [ ("simpleCoverage", Coverage.simpleCoverage)
