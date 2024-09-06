@@ -5,6 +5,7 @@ import Control.Monad.Identity
 import Control.Monad.Trans
 import Control.Monad.Writer
 import Data.Lazy
+import Data.List.Quantifiers
 import public Data.Double.Bounded
 import Data.DPair
 import Derive.Prelude
@@ -416,6 +417,13 @@ export %inline
 annotateShow : Show a => Applicative m => a -> TestT m ()
 annotateShow v = annotate $ ppShow v
 
+||| Annotates the source code with all values separately.
+export
+annotateAllShow : All Show ts => Monad m => HList ts -> TestT m ()
+annotateAllShow         []      = pure ()
+annotateAllShow @{_::_} [x]     = annotateShow x
+annotateAllShow @{_::_} (x::xs) = annotateShow x >> annotateAllShow xs
+
 ||| Logs a message to be displayed as additional information in the footer of
 ||| the failure report.
 export %inline
@@ -543,6 +551,19 @@ forAllWith render gen = do
 export %inline
 forAll : Show a => Gen a -> PropertyT a
 forAll = forAllWith ppShow
+
+||| Generates a random input provided a bunch of generators.
+|||
+||| This function is an easy way to write several foralls in a row.
+||| `[a, b, c] <- forAlls [x, y, z]` prints error message like
+||| `(a, b, c) <- [| (forAll x, forAll y, forAll z) |]` but shrinks like
+||| `(a, b, c) <- forAll [| (x, y, z) |]`.
+export
+forAlls : All Show ts => All Gen ts -> PropertyT (HList ts)
+forAlls gens = do
+  xs <- lift $ lift $ hlist gens
+  annotateAllShow xs
+  pure xs
 
 ||| Lift a test in to a property.
 export

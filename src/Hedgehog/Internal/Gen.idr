@@ -5,12 +5,14 @@ import Data.Colist
 import Data.Cotree
 import Data.Fin
 import Data.List
+import Data.List.Quantifiers
 import Data.List1
 import Data.Nat
 import Data.SOP
 import Data.String
 import Data.Tree
 import Data.Vect
+import Data.Vect.Quantifiers
 
 import Control.Monad.Maybe
 
@@ -600,6 +602,18 @@ list1 range gen = [| gen ::: list (map pred range) gen |]
 export
 string : Range Nat -> Gen Char -> Gen String
 string range = map fastPack . list range
+
+||| Generates an heterogeneous list being provided a generator for each element
+export
+hlist : All Gen ts -> Gen (HList ts)
+hlist []      = [| [] |]
+hlist (x::xs) = [| x :: hlist xs |]
+
+||| Generates an heterogeneous vect being provided a generator for each element
+export
+hvect : All Gen ts -> Gen (HVect ts)
+hvect []      = [| [] |]
+hvect (x::xs) = [| x :: hvect xs |]
 
 --------------------------------------------------------------------------------
 --          SOP

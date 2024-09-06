@@ -1,5 +1,6 @@
 module Basic
 
+import Data.List.Quantifiers
 import Hedgehog.Meta
 
 %default total
@@ -69,6 +70,49 @@ namespace NoShrinkGen
           > recheck
         """
 
+  export
+  forallsPosGeneration : Property
+  forallsPosGeneration = checkGivenOutput expected prop
+
+    where
+      prop : Property
+      prop = property $ do
+        let g = integral_ $ constant 1 999
+        [n, m] <- forAlls [g, g]
+        let _ : Integer := n
+        let _ : Integer := m
+        assert $ n >= 1 && n <= 999
+        assert $ m >= 1 && m <= 999
+      expected : String
+      expected = "✓ <interactive> passed 100 tests."
+
+  export
+  forallsNegGeneration : Property
+  forallsNegGeneration =
+    recheckGivenOutput {checkPrefixOnly=True} expected prop 7 seed
+
+    where
+      seed : StdGen
+      seed = rawStdGen 17390955263926595516 17173145979079339501
+      prop : Property
+      prop = property $ do
+        let g = integral_ $ constant 1 999
+        [n, m] <- forAlls [g, g]
+        let _ : Integer := n
+        let _ : Integer := m
+        assert $ n >= 20 && m >= 20
+      expected : String
+      expected =
+        """
+        ✗ <interactive> failed after 1 test.
+        forAll 0 =
+          5
+        forAll 1 =
+          798
+        This failure can be reproduced by running:
+          > recheck
+        """
+
 namespace ShrinkGen
 
   export
@@ -103,6 +147,57 @@ namespace ShrinkGen
         """
         ✗ <interactive> failed after 1 test.
         forAll 0 =
+          1
+        This failure can be reproduced by running:
+          > recheck
+        """
+
+  export
+  forallsPosGeneration : Property
+  forallsPosGeneration = checkGivenOutput expected prop
+
+    where
+      prop : Property
+      prop = property $ do
+        let g = integral $ constant 1 999
+        [n, m, k] <- forAlls [g, g, g]
+        let _ : Integer := n
+        let _ : Integer := m
+        let _ : Integer := k
+        assert $ n >= 1 && n <= 999
+        assert $ m >= 1 && m <= 999
+        assert $ k >= 1 && k <= 999
+      expected : String
+      expected = "✓ <interactive> passed 100 tests."
+
+  export
+  forallsNegGeneration : Property
+  forallsNegGeneration =
+    recheckGivenOutput {checkPrefixOnly=True} expected prop 7 seed
+
+    where
+      seed : StdGen
+      seed = rawStdGen 17390955263926595516 17173145979079339501
+
+      prop : Property
+      prop = property $ do
+        let g = integral $ constant 1 999
+        [n, m, k] <- forAlls [g, g, g]
+        let _ : Integer := n
+        let _ : Integer := m
+        let _ : Integer := k
+        assert $ n >= 20
+        assert $ m >= 20
+        assert $ k >= 20
+      expected : String
+      expected =
+        """
+        ✗ <interactive> failed after 1 test.
+        forAll 0 =
+          1
+        forAll 1 =
+          1
+        forAll 2 =
           1
         This failure can be reproduced by running:
           > recheck
