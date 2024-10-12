@@ -56,7 +56,7 @@ checkReverse : IO Bool
 checkReverse = check propReverse
 ```
 
-Running this produces the following output:
+Running `:exec checkReverse` in the REPL produces the following output:
 
 ```repl
 >  ✓ <interactive> passed 100 tests.
