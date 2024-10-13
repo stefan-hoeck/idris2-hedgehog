@@ -56,7 +56,7 @@ checkReverse : IO Bool
 checkReverse = check propReverse
 ```
 
-Running this produces the following output:
+Running `:exec checkReverse` in the REPL produces the following output:
 
 ```repl
 >  ✓ <interactive> passed 100 tests.
@@ -107,7 +107,7 @@ checkPack =
       ]
 ```
 
-Running this in the REPL results in the following output:
+Running `:exec checkPack` in the REPL results in the following output:
 
 ```repl
 > ━━━ Fast String Functions ━━━
@@ -145,7 +145,8 @@ checkFailing1 : IO Bool
 checkFailing1 = checkNamed "propAddInts" propAddInts
 ```
 
-Running the above results in output similar to this:
+Running `:exec checkFailing1` in the REPL results in
+an output similar to this:
 
 ```repl
 > ✗ propAddInts failed after 7 tests.
