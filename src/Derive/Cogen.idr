@@ -37,7 +37,7 @@ CogenVis vis nms p = do
         arg : BoundArg 1 Unerased -> TTImp
         arg $ BA g [x] _ =
           assertIfRec nms g.type
-            `(Function.perturb ~(varStr x) . Function.shiftArg)
+            `(Function.perturb ~(var x) . Function.shiftArg)
 
         rhs : SnocList TTImp -> TTImp
         rhs = foldr (\l, r => `(~l . ~r))
