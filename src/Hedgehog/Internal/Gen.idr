@@ -540,10 +540,15 @@ printableUnicode =
     ]
 
 ||| Generates a Unicode character, including noncharacters
-||| and invalid standalone surrogates: `'\0'..'\1114111'`
+||| but excluding invalid standalone surrogates: `0000..10FFFF`
+||| (excluding D800..DFFFF)
 export %inline
 unicodeAll : Gen Char
-unicodeAll = charc '\0' '\1114111'
+unicodeAll =
+  frequency
+    [ (55296, charc '\0' '\55295')
+    , (1056768, charc '\57344' '\1114111')
+    ]
 
 --------------------------------------------------------------------------------
 --          Containers
