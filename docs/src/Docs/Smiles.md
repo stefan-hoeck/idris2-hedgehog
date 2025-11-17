@@ -80,6 +80,8 @@ encode POpen                = "("
 encode PClose               = ")"
 encode (Invalid x)          = "Invalid " ++ x
 encode (Ring x)             = if x >= 10 then "%" ++ show x else show x
+
+Interpolation Token where interpolate = encode
 ```
 
 We are now ready to implement the lexer itself:
