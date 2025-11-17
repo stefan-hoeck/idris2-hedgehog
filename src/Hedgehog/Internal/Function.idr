@@ -126,7 +126,7 @@ Cogen Char where perturb = variant . cast
 
 export
 Cogen Void where
-  perturb _ impossible
+  perturb _ _ impossible
 
 export
 Cogen a => Cogen b => Cogen (a, b) where
