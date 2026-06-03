@@ -598,6 +598,12 @@ list range gen =
      in mapGen (interleave minLength . value) $
         integral_ range >>= (\n => map toList (vect n (toTree gen)))
 
+||| Generates a snoc list using a 'Range' to determine the length.
+export
+snocList : Range Nat -> Gen a -> Gen (SnocList a)
+snocList r g = ([<]<><) <$> list r g
+
+
 ||| Generates a non-empty list using a `Range` to determine the length.
 export
 list1 : Range Nat -> Gen a -> Gen (List1 a)
