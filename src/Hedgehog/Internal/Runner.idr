@@ -69,7 +69,8 @@ takeSmallest si se (MkTagged slimit) updateUI t = do
 --          Test Runners
 --------------------------------------------------------------------------------
 
--- main test runner
+||| The low-level runner behind `check`, returning the full `Report Result`.
+export
 checkReport :
      {auto _ : Monad m}
   -> PropertyConfig
