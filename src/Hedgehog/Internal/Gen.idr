@@ -335,6 +335,7 @@ fin range =
     toFin k = fromMaybe range.origin (integerToFin k n)
 
 ||| Generates a random (Fin n), where n must be positive.
+export
 anyFin : (n : Nat) -> (0 prf : IsSucc n) => Gen (Fin n)
 anyFin Z impossible
 anyFin (S k) = fin (linearFin k)
