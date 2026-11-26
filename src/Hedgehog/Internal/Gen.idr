@@ -604,6 +604,14 @@ list range gen =
      in mapGen (interleave minLength . value) $
         integral_ range >>= (\n => map toList (vect n (toTree gen)))
 
+||| Generates a random permutation of the given list.
+export
+shuffle : List a -> Gen (List a)
+shuffle vs = shffl <$> vect _ (nat $ linear 0 $ length vs)
+  where
+    shffl : Vect (length vs) Nat -> List a
+    shffl = map fst . sortBy (comparing snd) . zip vs . toList
+
 ||| Generates a snoc list using a 'Range' to determine the length.
 export
 snocList : Range Nat -> Gen a -> Gen (SnocList a)
