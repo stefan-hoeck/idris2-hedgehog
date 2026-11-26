@@ -8,6 +8,7 @@ import Hedgehog.Internal.Property
 import Hedgehog.Internal.Range
 import Hedgehog.Internal.Util
 import System.Random.Pure.StdGen
+import System.Time
 import Text.Show.Diff
 import Text.PrettyPrint.Bernardy.ANSI
 
@@ -68,9 +69,12 @@ isSuccess = not . isFailure
 public export
 record Report a where
   constructor MkReport
-  tests    : TestCount
-  coverage : Coverage CoverCount
-  status   : a
+  tests       : TestCount
+  coverage    : Coverage CoverCount
+  -- elapsedTime : FinDuration
+  status      : a
+
+Show FinDuration where show = interpolate
 
 %runElab derive "Report" [Show,Eq]
 
@@ -466,14 +470,14 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
     else
       icon SuccessIcon '✓' . markup SuccessText
 
-  ppResult : Maybe PropertyName -> Report Result -> Doc opts
-  ppResult name (MkReport tests cov result) =
+  ppResult : Maybe PropertyName -> Report Result -> FinDuration -> Doc opts
+  ppResult name (MkReport tests cov result) duration =
     case result of
       Failed failure =>
         vsep $
         [ icon FailedIcon '✗' . markup FailedText $
           ppName name <++>
-          line "failed after \{testCount tests}."
+          line "failed after \{testCount tests}. (\{duration})"
         ] ++
         coverage tests cov ++
         failureReport name tests failure
@@ -481,7 +485,7 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
       OK =>
         vsep $
           [ icon SuccessIcon '✓' . markup SuccessText $
-            ppName name <++> line "passed \{testCount tests}."
+            ppName name <++> line "passed \{testCount tests}. (\{duration})"
           ] ++
           coverage tests cov
 
@@ -529,8 +533,8 @@ renderProgress : UseColor -> Maybe PropertyName -> Report Progress -> String
 renderProgress color name = renderDoc . ppProgress color name
 
 export
-renderResult : UseColor -> Maybe PropertyName -> Report Result -> String
-renderResult color name = renderDoc . ppResult color name
+renderResult : UseColor -> Maybe PropertyName -> Report Result -> FinDuration -> String
+renderResult color name report duration = renderDoc $ ppResult color name report duration
 
 export
 renderSummary : UseColor -> Summary -> String

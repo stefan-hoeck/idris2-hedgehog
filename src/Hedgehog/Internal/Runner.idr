@@ -12,6 +12,7 @@ import Hedgehog.Internal.Report
 import Hedgehog.Internal.Terminal
 import System
 import System.Random.Pure.StdGen
+import System.Time
 
 %default total
 
@@ -124,6 +125,7 @@ checkReport cfg si0 se0 test updateUI =
 
 checkTerm :
      {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Terminal m
   -> UseColor
@@ -133,6 +135,7 @@ checkTerm :
   -> Property
   -> m (Report Result)
 checkTerm term color name si se prop = do
+  start <- currentTime
   result <- checkReport {m} prop.config si se prop.test $
     \prog =>
        when (multOf100 prog.tests) $
@@ -140,13 +143,15 @@ checkTerm term color name si se prop = do
           in case prog.status of
                Running     => putTmp term ppprog
                Shrinking _ => putTmp term ppprog
-
-  putOut term (renderResult color name result)
+  end <- currentTime
+  let elapsed = start - end
+  putOut term (renderResult color name result elapsed)
   pure result
 
 checkWith :
      {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Terminal m
   -> UseColor
@@ -162,6 +167,7 @@ checkNamed :
      {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> PropertyName
   -> Property
@@ -178,6 +184,7 @@ check :
      {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Property
   -> m Bool
@@ -192,6 +199,7 @@ export
 recheck :
      {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Size
   -> StdGen
@@ -207,6 +215,7 @@ recheck si se prop = do
 checkGroupWith :
      {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Terminal m
   -> UseColor
@@ -224,6 +233,7 @@ checkGroupWith term color = run neutral
 export
 checkGroup :
      {auto _ : CanInitSeed StdGen m}
+  -> {auto _ : Timed m}
   -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
@@ -272,7 +282,7 @@ test gs = do
      else
        let gs2 := map (applyConfig c) gs
         in do
-             res <- foldlM (\b,g => map (b &&) (checkGroup g)) True gs2
+             res <- foldlM (\b,g => map (b &&) (checkGroup @{%search} @{HasIO} g)) True gs2
              if res
                 then exitSuccess
                 else putStrLn "\n\nSome tests failed" >> exitFailure

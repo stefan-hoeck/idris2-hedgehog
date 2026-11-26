@@ -6,6 +6,7 @@ import Text.ANSI.CSI
 import Data.IORef
 import Data.String
 import System.File
+import System.Time
 
 ||| Interface showing that in the given monadic context `m` user can
 ||| initialise terminal and use it for printing temporary and permanent info.
@@ -73,6 +74,15 @@ export
   console      = pure ()
   putTmp _ _   = pure ()
   putOut _ str = tell [str]
+
+||| Uses monadic writer to remember everything
+||| written permanently to the terminal
+|||
+||| This implementation does not use any type of actual printing to any
+||| real terminal, this is completely pure.
+export
+MonadWriter (List String) m => Timed m where
+  currentTime = ?ag
 
 public export
 data StdoutOrTmp = Stdout | Tmp
