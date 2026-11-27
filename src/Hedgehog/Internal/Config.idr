@@ -23,6 +23,12 @@ data Verbosity = Quiet | Normal
 
 %runElab derive "Verbosity" [Show,Eq,Ord]
 
+||| Whether to report property timings.
+public export
+data ReportTimings = DisableTimings | EnableTimings
+
+%runElab derive "ReportTimings" [Show,Eq,Ord]
+
 --------------------------------------------------------------------------------
 --          Detecting Config Settings
 --------------------------------------------------------------------------------
@@ -31,8 +37,9 @@ data Verbosity = Quiet | Normal
 public export
 interface HasConfig m where
   constructor MkHasConfig
-  detectColor     : m UseColor
-  detectVerbosity : m Verbosity
+  detectColor         : m UseColor
+  detectVerbosity     : m Verbosity
+  detectReportTimings : m ReportTimings
 
 export
 resolveColor : HasConfig m => Applicative m => Maybe UseColor -> m UseColor
@@ -41,6 +48,10 @@ resolveColor = maybe detectColor pure
 export
 resolveVerbosity : HasConfig m => Applicative m => Maybe Verbosity -> m Verbosity
 resolveVerbosity = maybe detectVerbosity pure
+
+export
+resolveTimingsVerbosity : HasConfig m => Applicative m => Maybe ReportTimings -> m ReportTimings
+resolveTimingsVerbosity = maybe detectReportTimings pure
 
 lookupBool : HasIO io => String -> io (Maybe Bool)
 lookupBool key =
@@ -67,6 +78,10 @@ HasIO io => HasConfig io where
     Just "0" <- getEnv "HEDGEHOG_VERBOSITY" | _ => pure Normal
     pure Quiet
 
+  detectReportTimings = do
+    Just True <- lookupBool "HEDGEHOG_REPORT_TIMINGS" | _ => pure DisableTimings
+    pure EnableTimings
+
 ||| Uses the most conservative configuration
 |||
 ||| This implementation is applicable for any applicative context,
@@ -75,5 +90,6 @@ export %defaulthint
 DefaultConfig : Applicative m => HasConfig m
 DefaultConfig = D where
   [D] HasConfig m where
-    detectColor     = pure DisableColor
-    detectVerbosity = pure Normal
+    detectColor         = pure DisableColor
+    detectVerbosity     = pure Normal
+    detectReportTimings = pure EnableTimings

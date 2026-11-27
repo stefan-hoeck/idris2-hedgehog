@@ -75,15 +75,6 @@ export
   putTmp _ _   = pure ()
   putOut _ str = tell [str]
 
-||| Uses monadic writer to remember everything
-||| written permanently to the terminal
-|||
-||| This implementation does not use any type of actual printing to any
-||| real terminal, this is completely pure.
-export
-MonadWriter (List String) m => Timed m where
-  currentTime = ?ag
-
 public export
 data StdoutOrTmp = Stdout | Tmp
 

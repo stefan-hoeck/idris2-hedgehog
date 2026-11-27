@@ -470,14 +470,17 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
     else
       icon SuccessIcon '✓' . markup SuccessText
 
-  ppResult : Maybe PropertyName -> Report Result -> FinDuration -> Doc opts
+  ppResult : Maybe PropertyName -> Report Result -> Maybe FinDuration -> Doc opts
   ppResult name (MkReport tests cov result) duration =
+    let duration : String = case duration of
+          Nothing => ""
+          Just d => " (\{d})" in
     case result of
       Failed failure =>
         vsep $
         [ icon FailedIcon '✗' . markup FailedText $
           ppName name <++>
-          line "failed after \{testCount tests}. (\{duration})"
+          line ("failed after \{testCount tests}." ++ duration)
         ] ++
         coverage tests cov ++
         failureReport name tests failure
@@ -485,7 +488,7 @@ parameters {opts : LayoutOpts} (useColor : UseColor)
       OK =>
         vsep $
           [ icon SuccessIcon '✓' . markup SuccessText $
-            ppName name <++> line "passed \{testCount tests}. (\{duration})"
+            ppName name <++> line ("passed \{testCount tests}." ++ duration)
           ] ++
           coverage tests cov
 
@@ -533,7 +536,7 @@ renderProgress : UseColor -> Maybe PropertyName -> Report Progress -> String
 renderProgress color name = renderDoc . ppProgress color name
 
 export
-renderResult : UseColor -> Maybe PropertyName -> Report Result -> FinDuration -> String
+renderResult : UseColor -> Maybe PropertyName -> Report Result -> Maybe FinDuration -> String
 renderResult color name report duration = renderDoc $ ppResult color name report duration
 
 export

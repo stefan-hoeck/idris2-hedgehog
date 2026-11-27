@@ -129,12 +129,13 @@ checkTerm :
   -> {auto _ : Monad m}
   -> Terminal m
   -> UseColor
+  -> ReportTimings
   -> Maybe PropertyName
   -> Maybe Size
   -> StdGen
   -> Property
   -> m (Report Result)
-checkTerm term color name si se prop = do
+checkTerm term color reportTiming name si se prop = do
   start <- currentTime
   result <- checkReport {m} prop.config si se prop.test $
     \prog =>
@@ -144,7 +145,9 @@ checkTerm term color name si se prop = do
                Running     => putTmp term ppprog
                Shrinking _ => putTmp term ppprog
   end <- currentTime
-  let elapsed = start - end
+  let elapsed = case reportTiming of
+        EnableTimings => Just $ start - end
+        DisableTimings => Nothing
   putOut term (renderResult color name result elapsed)
   pure result
 
@@ -155,11 +158,12 @@ checkWith :
   -> {auto _ : Monad m}
   -> Terminal m
   -> UseColor
+  -> ReportTimings
   -> Maybe PropertyName
   -> Property
   -> m (Report Result)
-checkWith term color name prop =
-  initSeed >>= \se => checkTerm term color name Nothing se prop
+checkWith term color reportTiming name prop =
+  initSeed >>= \se => checkTerm term color reportTiming name Nothing se prop
 
 ||| Check a property.
 export
@@ -175,7 +179,8 @@ checkNamed :
 checkNamed name prop = do
   color <- detectColor
   term  <- console
-  rep   <- checkWith term color (Just name) prop
+  rtime <- detectReportTimings
+  rep   <- checkWith term color rtime (Just name) prop
   pure $ rep.status == OK
 
 ||| Check a property.
@@ -191,7 +196,8 @@ check :
 check prop = do
   color <- detectColor
   term  <- console
-  rep   <- checkWith term color Nothing prop
+  rtime <- detectReportTimings
+  rep   <- checkWith term color rtime Nothing prop
   pure $ rep.status == OK
 
 ||| Check a property using a specific size and seed.
@@ -208,8 +214,9 @@ recheck :
 recheck si se prop = do
   color <- detectColor
   term  <- console
+  rtime <- detectReportTimings
   let prop = noVerifiedTermination $ withTests 1 prop
-  _     <- checkTerm term color Nothing (Just si) se prop
+  _     <- checkTerm term color rtime Nothing (Just si) se prop
   pure ()
 
 checkGroupWith :
@@ -219,15 +226,16 @@ checkGroupWith :
   -> {auto _ : Monad m}
   -> Terminal m
   -> UseColor
+  -> ReportTimings
   -> List (PropertyName, Property)
   -> m Summary
-checkGroupWith term color = run neutral
+checkGroupWith term color reportTiming = run neutral
 
   where
     run : Summary -> List (PropertyName, Property) -> m Summary
     run s [] = pure s
     run s ((pn,p) :: ps) = do
-      rep  <- checkWith term color (Just pn) p
+      rep  <- checkWith term color reportTiming (Just pn) p
       run (s <+> fromResult rep.status) ps
 
 export
@@ -243,7 +251,8 @@ checkGroup (MkGroup group props) = do
   term    <- console
   putOut term $ "━━━ " ++ unTag group ++ " ━━━\n"
   color   <- detectColor
-  summary <- checkGroupWith term color props
+  rtime   <- detectReportTimings
+  summary <- checkGroupWith term color rtime props
   putOut term (renderSummary color summary)
   pure $ summary.failed == 0
 
