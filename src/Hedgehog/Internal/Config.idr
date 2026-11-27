@@ -1,5 +1,7 @@
 module Hedgehog.Internal.Config
 
+import Hedgehog.Internal.Options
+
 import Derive.Prelude
 import System
 
@@ -23,11 +25,13 @@ data Verbosity = Quiet | Normal
 
 %runElab derive "Verbosity" [Show,Eq,Ord]
 
+{-
 ||| Whether to report property timings.
 public export
 data ReportTimings = DisableTimings | EnableTimings
 
 %runElab derive "ReportTimings" [Show,Eq,Ord]
+-}
 
 --------------------------------------------------------------------------------
 --          Detecting Config Settings
@@ -39,7 +43,7 @@ interface HasConfig m where
   constructor MkHasConfig
   detectColor         : m UseColor
   detectVerbosity     : m Verbosity
-  detectReportTimings : m ReportTimings
+  --detectReportTimings : m ReportTimings
 
 export
 resolveColor : HasConfig m => Applicative m => Maybe UseColor -> m UseColor
@@ -49,23 +53,14 @@ export
 resolveVerbosity : HasConfig m => Applicative m => Maybe Verbosity -> m Verbosity
 resolveVerbosity = maybe detectVerbosity pure
 
+{-
 export
 resolveReportTimings : HasConfig m => Applicative m => Maybe ReportTimings -> m ReportTimings
 resolveReportTimings = maybe detectReportTimings pure
+-}
 
 lookupBool : HasIO io => String -> io (Maybe Bool)
-lookupBool key =
-  getEnv key >>=
-    \case
-      Just "0"     => pure $ Just False
-      Just "no"    => pure $ Just False
-      Just "false" => pure $ Just False
-
-      Just "1"     => pure $ Just True
-      Just "yes"   => pure $ Just True
-      Just "true"  => pure $ Just True
-
-      _            => pure Nothing
+lookupBool key = map (>>= parseBool) $ getEnv key
 
 ||| Reads the global configuration from environment variables
 export
@@ -77,10 +72,11 @@ HasIO io => HasConfig io where
   detectVerbosity = do
     Just "0" <- getEnv "HEDGEHOG_VERBOSITY" | _ => pure Normal
     pure Quiet
-
+{-
   detectReportTimings = do
     Just True <- lookupBool "HEDGEHOG_REPORT_TIMINGS" | _ => pure DisableTimings
     pure EnableTimings
+    -}
 
 ||| Uses the most conservative configuration
 |||
@@ -92,4 +88,4 @@ DefaultConfig = D where
   [D] HasConfig m where
     detectColor         = pure DisableColor
     detectVerbosity     = pure Normal
-    detectReportTimings = pure DisableTimings
+    --detectReportTimings = pure DisableTimings
