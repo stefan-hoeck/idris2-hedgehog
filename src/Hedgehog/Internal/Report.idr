@@ -71,10 +71,7 @@ record Report a where
   constructor MkReport
   tests       : TestCount
   coverage    : Coverage CoverCount
-  -- elapsedTime : FinDuration
   status      : a
-
-Show FinDuration where show = interpolate
 
 %runElab derive "Report" [Show,Eq]
 

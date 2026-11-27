@@ -6,7 +6,6 @@ import Text.ANSI.CSI
 import Data.IORef
 import Data.String
 import System.File
-import System.Time
 
 ||| Interface showing that in the given monadic context `m` user can
 ||| initialise terminal and use it for printing temporary and permanent info.

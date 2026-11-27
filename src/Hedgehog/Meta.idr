@@ -10,7 +10,6 @@ import Data.List
 import Data.String
 
 import System.Time
-import Debug.Trace
 
 import public Hedgehog
 
