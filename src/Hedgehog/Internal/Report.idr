@@ -69,9 +69,9 @@ isSuccess = not . isFailure
 public export
 record Report a where
   constructor MkReport
-  tests       : TestCount
-  coverage    : Coverage CoverCount
-  status      : a
+  tests    : TestCount
+  coverage : Coverage CoverCount
+  status   : a
 
 %runElab derive "Report" [Show,Eq]
 
