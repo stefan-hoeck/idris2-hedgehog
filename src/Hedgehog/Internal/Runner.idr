@@ -12,6 +12,7 @@ import Hedgehog.Internal.Report
 import Hedgehog.Internal.Terminal
 import System
 import System.Random.Pure.StdGen
+import System.Time
 
 %default total
 
@@ -124,15 +125,18 @@ checkReport cfg si0 se0 test updateUI =
 
 checkTerm :
      {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Terminal m
   -> UseColor
+  -> Bool
   -> Maybe PropertyName
   -> Maybe Size
   -> StdGen
   -> Property
   -> m (Report Result)
-checkTerm term color name si se prop = do
+checkTerm term color reportTimings name si se prop = do
+  start <- currentTime
   result <- checkReport {m} prop.config si se prop.test $
     \prog =>
        when (multOf100 prog.tests) $
@@ -140,21 +144,24 @@ checkTerm term color name si se prop = do
           in case prog.status of
                Running     => putTmp term ppprog
                Shrinking _ => putTmp term ppprog
-
-  putOut term (renderResult color name result)
+  end <- currentTime
+  let elapsed = if reportTimings then Just $ start - end else Nothing
+  putOut term (renderResult color name result elapsed)
   pure result
 
 checkWith :
      {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Terminal m
   -> UseColor
+  -> Bool
   -> Maybe PropertyName
   -> Property
   -> m (Report Result)
-checkWith term color name prop =
-  initSeed >>= \se => checkTerm term color name Nothing se prop
+checkWith term color reportTimings name prop =
+  initSeed >>= \se => checkTerm term color reportTimings name Nothing se prop
 
 ||| Check a property.
 export
@@ -162,6 +169,7 @@ checkNamed :
      {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> PropertyName
   -> Property
@@ -169,7 +177,7 @@ checkNamed :
 checkNamed name prop = do
   color <- detectColor
   term  <- console
-  rep   <- checkWith term color (Just name) prop
+  rep   <- checkWith term color ?reportTimings3 (Just name) prop
   pure $ rep.status == OK
 
 ||| Check a property.
@@ -178,13 +186,14 @@ check :
      {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Property
   -> m Bool
 check prop = do
   color <- detectColor
   term  <- console
-  rep   <- checkWith term color Nothing prop
+  rep   <- checkWith term color ?reportTimings0 Nothing prop
   pure $ rep.status == OK
 
 ||| Check a property using a specific size and seed.
@@ -192,6 +201,7 @@ export
 recheck :
      {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Size
   -> StdGen
@@ -201,39 +211,43 @@ recheck si se prop = do
   color <- detectColor
   term  <- console
   let prop = noVerifiedTermination $ withTests 1 prop
-  _     <- checkTerm term color Nothing (Just si) se prop
+  _     <- checkTerm term color ?reportTimings1 Nothing (Just si) se prop
   pure ()
 
 checkGroupWith :
      {auto _ : CanInitSeed StdGen m}
   -> {auto _ : HasTerminal m}
+  -> {auto _ : Timed m}
   -> {auto _ : Monad m}
   -> Terminal m
   -> UseColor
+  -> Bool
   -> List (PropertyName, Property)
   -> m Summary
-checkGroupWith term color = run neutral
+checkGroupWith term color reportTimings = run neutral
 
   where
     run : Summary -> List (PropertyName, Property) -> m Summary
     run s [] = pure s
     run s ((pn,p) :: ps) = do
-      rep  <- checkWith term color (Just pn) p
+      rep  <- checkWith term color reportTimings (Just pn) p
       run (s <+> fromResult rep.status) ps
 
 export
 checkGroup :
      {auto _ : CanInitSeed StdGen m}
+  -> {auto _ : Timed m}
   -> {auto _ : HasConfig m}
   -> {auto _ : HasTerminal m}
   -> {auto _ : Monad m}
+  -> Bool
   -> Group
   -> m Bool
-checkGroup (MkGroup group props) = do
+checkGroup reportTimings (MkGroup group props) = do
   term    <- console
   putOut term $ "━━━ " ++ unTag group ++ " ━━━\n"
   color   <- detectColor
-  summary <- checkGroupWith term color props
+  summary <- checkGroupWith term color reportTimings props
   putOut term (renderSummary color summary)
   pure $ summary.failed == 0
 
@@ -272,7 +286,7 @@ test gs = do
      else
        let gs2 := map (applyConfig c) gs
         in do
-             res <- foldlM (\b,g => map (b &&) (checkGroup g)) True gs2
+             res <- foldlM (\b,g => map (b &&) (checkGroup @{%search} @{HasIO} c.timeTests g)) True gs2
              if res
                 then exitSuccess
                 else putStrLn "\n\nSome tests failed" >> exitFailure

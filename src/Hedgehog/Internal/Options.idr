@@ -17,10 +17,11 @@ record Config where
   numTests   : Maybe NumTest
   numShrinks : Maybe ShrinkLimit
   confidence : Maybe Confidence
+  timeTests  : Bool
 
 export
 init : Config
-init = MkConfig False Nothing Nothing Nothing
+init = MkConfig False Nothing Nothing Nothing False
 
 parseNat : String -> Either (List String) Nat
 parseNat s =
@@ -57,6 +58,28 @@ setTestsForced s c =
     (\n => { numTests := Just $ Forced $ MkTagged n} c)
     (parseNat s)
 
+export
+parseBool : String -> Maybe Bool
+parseBool =
+  \case
+    "0"     => Just False
+    "no"    => Just False
+    "false" => Just False
+
+    "1"     => Just True
+    "yes"   => Just True
+    "true"  => Just True
+
+    _       => Nothing
+
+setTimeTests : String -> Config -> Either (List String) Config
+setTimeTests s c =
+  map
+    (\n => { timeTests := n } c)
+    (case parseBool s of
+      Nothing => Left [ "Not a valid boolean value \{show s}" ]
+      Just b => Right b)
+
 setHelp : Config -> Either (List String) Config
 setHelp = Right . { printHelp := True }
 
@@ -70,6 +93,8 @@ descs =
       "maximal number of shrinks in case of a failed test"
   , MkOpt ['c'] ["confidence"] (ReqArg setConfidence "<confidence>")
       "acceptable occurence of false positives"
+  , MkOpt [] ["time-tests"] (ReqArg setTimeTests "<time-tests>")
+      "show test timings in logs"
   , MkOpt [] ["--help"] (NoArg setHelp)
       "print this help text"
   ]
@@ -87,7 +112,7 @@ applyArgs args =
 
 export
 applyConfig : Config -> Group -> Group
-applyConfig (MkConfig _ nt ns c) =
+applyConfig (MkConfig _ nt ns c _) =
   maybe id adjTests nt . maybe id withShrinks ns . maybe id withConfidence c
 
   where

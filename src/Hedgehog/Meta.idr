@@ -9,6 +9,8 @@ import Control.Monad.Writer
 import Data.List
 import Data.String
 
+import System.Time
+
 import public Hedgehog
 
 %default total
@@ -34,12 +36,15 @@ containsEach checkPrefixOnly (o::os) (i::is) =
 doCheck :
      (checkPrefixOnly : Bool)
   -> (expected : String)
-  -> (forall m. HasTerminal m => Monad m => m ())
+  -> (forall m. HasTerminal m => Timed m => Monad m => m ())
   -> PropertyT ()
 doCheck checkPrefixOnly expected checker = do
-  let actual = trimDeep $ (>>= lines) $ execWriter $ checker @{StdoutOnly}
+  let actual = trimDeep $ (>>= lines) $ execWriter $ checker @{StdoutOnly} @{ConstantTime}
   annotateSeedIfNeeded actual
   diff actual (containsEach checkPrefixOnly) (trimDeep $ lines expected)
+  where
+  [ConstantTime] MonadWriter (List a) m => Timed m where
+    currentTime = pure 0.millis
 
 ||| A property checking that Hedgehog being run on a particular property
 ||| with particular configuration prints expected string.
