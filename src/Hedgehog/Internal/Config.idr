@@ -80,7 +80,7 @@ HasIO io => HasConfig io where
 
   detectReportTimings = do
     Just True <- lookupBool "HEDGEHOG_REPORT_TIMINGS" | _ => pure DisableTimings
-    pure DisableTimings
+    pure EnableTimings
 
 ||| Uses the most conservative configuration
 |||
@@ -92,4 +92,4 @@ DefaultConfig = D where
   [D] HasConfig m where
     detectColor         = pure DisableColor
     detectVerbosity     = pure Normal
-    detectReportTimings = pure EnableTimings
+    detectReportTimings = pure DisableTimings
