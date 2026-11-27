@@ -50,8 +50,8 @@ resolveVerbosity : HasConfig m => Applicative m => Maybe Verbosity -> m Verbosit
 resolveVerbosity = maybe detectVerbosity pure
 
 export
-resolveTimingsVerbosity : HasConfig m => Applicative m => Maybe ReportTimings -> m ReportTimings
-resolveTimingsVerbosity = maybe detectReportTimings pure
+resolveReportTimings : HasConfig m => Applicative m => Maybe ReportTimings -> m ReportTimings
+resolveReportTimings = maybe detectReportTimings pure
 
 lookupBool : HasIO io => String -> io (Maybe Bool)
 lookupBool key =
